@@ -5,8 +5,8 @@ import { DashboardService } from "./dashboard.service";
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
-  @Get("stats")
-  getStats(@Req() req: any) {
-    return this.dashboardService.getStats(req.auth.workshopId);
+  @Get("overview")
+  getOverview(@Req() req: any) {
+    return this.dashboardService.getOverview(req.auth.workshopId);
   }
 }

@@ -27,14 +27,24 @@ export class WorkOrdersService {
 
   findAll(
     workshopId: string,
-    filters?: { clientId?: string; vehicleId?: string; status?: string },
+    filters?: { clientId?: string; vehicleId?: string; status?: string; search?: string },
   ) {
+    const search = filters?.search?.trim();
     return this.prisma.workOrder.findMany({
       where: {
         workshopId,
         ...(filters?.clientId ? { clientId: filters.clientId } : {}),
         ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
         ...(filters?.status ? { status: filters.status as any } : {}),
+        ...(search
+          ? {
+              OR: [
+                { description: { contains: search, mode: "insensitive" } },
+                { client: { name: { contains: search, mode: "insensitive" } } },
+                { vehicle: { plate: { contains: search, mode: "insensitive" } } },
+              ],
+            }
+          : {}),
       },
       orderBy: { createdAt: "desc" },
       include: {

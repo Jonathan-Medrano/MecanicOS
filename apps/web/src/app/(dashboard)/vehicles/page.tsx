@@ -24,6 +24,7 @@ export default function VehiclesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Vehicle | null>(null);
   const [search, setSearch] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
@@ -34,6 +35,7 @@ export default function VehiclesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/vehicles/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+    onError: (e: any) => setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
   });
 
   const filtered = vehicles?.filter((v) => {
@@ -48,7 +50,7 @@ export default function VehiclesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-semibold text-gray-900">Vehículos</h1>
         <button
           onClick={() => setCreateOpen(true)}
@@ -57,6 +59,12 @@ export default function VehiclesPage() {
           + Nuevo vehículo
         </button>
       </div>
+
+      {deleteError && (
+        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
 
       <div className="mb-4">
         <input
@@ -69,7 +77,11 @@ export default function VehiclesPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
+        <div className="space-y-1">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg h-12 animate-pulse" />
+          ))}
+        </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
@@ -85,14 +97,15 @@ export default function VehiclesPage() {
             <tbody className="divide-y divide-gray-100">
               {filtered?.map((v) => (
                 <tr key={v.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {v.brand} {v.model}{" "}
-                    <span className="text-gray-400 font-normal">{v.year}</span>
+                  <td className="px-4 py-3 text-sm">
+                    <span className="font-medium text-gray-900">{v.brand} {v.model}</span>
+                    {v.color && <span className="ml-2 text-xs text-gray-400">{v.color}</span>}
+                    <span className="ml-2 text-xs text-gray-400">{v.year}</span>
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-gray-600">{v.plate}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{v.client.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{v._count.workOrders}</td>
-                  <td className="px-4 py-3 text-sm text-right">
+                  <td className="px-4 py-3 text-sm text-gray-600 text-center">{v._count.workOrders}</td>
+                  <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setEditTarget(v)}
@@ -103,6 +116,7 @@ export default function VehiclesPage() {
                       </button>
                       <button
                         onClick={() => {
+                          setDeleteError(null);
                           if (!confirm(`¿Eliminar ${v.brand} ${v.model} (${v.plate})?`)) return;
                           deleteMutation.mutate(v.id);
                         }}
@@ -118,8 +132,8 @@ export default function VehiclesPage() {
             </tbody>
           </table>
           {!filtered?.length && (
-            <p className="px-4 py-10 text-center text-sm text-gray-400">
-              {search ? "Sin resultados para esa búsqueda." : "Todavía no hay vehículos."}
+            <p className="px-4 py-12 text-center text-sm text-gray-400">
+              {search ? "Sin resultados." : "Todavía no hay vehículos."}
             </p>
           )}
         </div>

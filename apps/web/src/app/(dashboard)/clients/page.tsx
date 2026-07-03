@@ -21,6 +21,7 @@ export default function ClientsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Client | null>(null);
   const [search, setSearch] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const router = useRouter();
   const qc = useQueryClient();
 
@@ -41,16 +42,18 @@ export default function ClientsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/clients/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
+    onError: (e: any) => setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
   });
 
   const handleDelete = (c: Client) => {
+    setDeleteError(null);
     if (!confirm(`¿Eliminar a ${c.name}? Esta acción no se puede deshacer.`)) return;
     deleteMutation.mutate(c.id);
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-semibold text-gray-900">Clientes</h1>
         <button
           onClick={() => setCreateOpen(true)}
@@ -59,6 +62,12 @@ export default function ClientsPage() {
           + Nuevo cliente
         </button>
       </div>
+
+      {deleteError && (
+        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
 
       <div className="mb-4">
         <input
@@ -71,13 +80,17 @@ export default function ClientsPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
+        <div className="space-y-1">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg h-12 animate-pulse" />
+          ))}
+        </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {["Nombre", "Teléfono", "Vehículos", "Órdenes", ""].map((h, i) => (
+                {["Nombre", "Teléfono", "Email", "Vehículos", "Órdenes", ""].map((h, i) => (
                   <th key={i} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -94,9 +107,10 @@ export default function ClientsPage() {
                     {c.name}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{c.phone}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{c._count.vehicles}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{c._count.workOrders}</td>
-                  <td className="px-4 py-3 text-sm text-right">
+                  <td className="px-4 py-3 text-sm text-gray-500">{c.email ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-center">{c._count.vehicles}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-center">{c._count.workOrders}</td>
+                  <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setEditTarget(c)}
@@ -119,8 +133,8 @@ export default function ClientsPage() {
             </tbody>
           </table>
           {!filtered?.length && (
-            <p className="px-4 py-10 text-center text-sm text-gray-400">
-              {search ? "Sin resultados para esa búsqueda." : "Todavía no hay clientes. Creá el primero."}
+            <p className="px-4 py-12 text-center text-sm text-gray-400">
+              {search ? "Sin resultados para esa búsqueda." : "Todavía no hay clientes."}
             </p>
           )}
         </div>

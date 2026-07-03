@@ -2,8 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { relativeTime } from "@/lib/relative-time";
 
 const STATUS: Record<string, { label: string; color: string }> = {
   PENDING:       { label: "Pendiente",        color: "bg-yellow-100 text-yellow-800" },
@@ -15,7 +17,15 @@ const STATUS: Record<string, { label: string; color: string }> = {
 };
 
 type Vehicle = { id: string; brand: string; model: string; plate: string; year?: number; color?: string };
-type WorkOrder = { id: string; description: string; status: string; createdAt: string; estimatedCost?: number };
+type WorkOrder = {
+  id: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  estimatedCost?: number;
+  finalCost?: number;
+  vehicle: { brand: string; model: string; plate: string };
+};
 type ClientDetail = {
   id: string;
   name: string;
@@ -39,39 +49,39 @@ export default function ClientDetailPage() {
   if (!client) return <p className="text-sm text-red-500">Cliente no encontrado.</p>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 max-w-3xl">
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded"
-        >
+        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 p-1 rounded">
           <ArrowLeft size={18} />
         </button>
         <h1 className="text-2xl font-semibold text-gray-900">{client.name}</h1>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+      {/* Info */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
         <div>
-          <p className="text-gray-500">Teléfono</p>
-          <p className="font-medium text-gray-900 mt-0.5">{client.phone}</p>
+          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Teléfono</p>
+          <p className="font-medium text-gray-900 mt-1">{client.phone}</p>
         </div>
         {client.email && (
           <div>
-            <p className="text-gray-500">Email</p>
-            <p className="font-medium text-gray-900 mt-0.5">{client.email}</p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Email</p>
+            <p className="font-medium text-gray-900 mt-1">{client.email}</p>
           </div>
         )}
         {client.notes && (
-          <div className="sm:col-span-2">
-            <p className="text-gray-500">Notas</p>
-            <p className="font-medium text-gray-900 mt-0.5">{client.notes}</p>
+          <div className="sm:col-span-3">
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Notas</p>
+            <p className="text-gray-700 mt-1">{client.notes}</p>
           </div>
         )}
       </div>
 
+      {/* Vehicles */}
       <section>
-        <h2 className="text-base font-semibold text-gray-900 mb-3">
-          Vehículos ({client.vehicles.length})
+        <h2 className="text-sm font-semibold text-gray-900 mb-2">
+          Vehículos <span className="text-gray-400 font-normal">({client.vehicles.length})</span>
         </h2>
         {client.vehicles.length === 0 ? (
           <p className="text-sm text-gray-400">Sin vehículos registrados.</p>
@@ -80,8 +90,8 @@ export default function ClientDetailPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {["Marca", "Modelo", "Patente", "Año", "Color"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  {["Vehículo", "Patente", "Año", "Color"].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                       {h}
                     </th>
                   ))}
@@ -90,11 +100,12 @@ export default function ClientDetailPage() {
               <tbody className="divide-y divide-gray-100">
                 {client.vehicles.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">{v.brand}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{v.model}</td>
-                    <td className="px-4 py-3 text-sm font-mono text-gray-900">{v.plate}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{v.year ?? "—"}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{v.color ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">
+                      {v.brand} {v.model}
+                    </td>
+                    <td className="px-4 py-2.5 text-sm font-mono text-gray-600">{v.plate}</td>
+                    <td className="px-4 py-2.5 text-sm text-gray-500">{v.year ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-sm text-gray-500">{v.color ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -103,34 +114,66 @@ export default function ClientDetailPage() {
         )}
       </section>
 
+      {/* Work orders */}
       <section>
-        <h2 className="text-base font-semibold text-gray-900 mb-3">
-          Órdenes recientes ({client.workOrders.length})
-        </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-gray-900">
+            Órdenes <span className="text-gray-400 font-normal">({client.workOrders.length})</span>
+          </h2>
+          <Link
+            href={`/work-orders?clientId=${client.id}`}
+            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+          >
+            Ver en órdenes <ExternalLink size={11} />
+          </Link>
+        </div>
+
         {client.workOrders.length === 0 ? (
           <p className="text-sm text-gray-400">Sin órdenes registradas.</p>
         ) : (
-          <div className="space-y-2">
-            {client.workOrders.map((o) => {
-              const s = STATUS[o.status] ?? { label: o.status, color: "bg-gray-100 text-gray-700" };
-              return (
-                <div
-                  key={o.id}
-                  className="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between gap-4"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{o.description}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {new Date(o.createdAt).toLocaleDateString("es-AR")}
-                      {o.estimatedCost != null && ` · $${o.estimatedCost.toLocaleString("es-AR")}`}
-                    </p>
-                  </div>
-                  <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${s.color}`}>
-                    {s.label}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {["Descripción", "Vehículo", "Estado", "Costo", "Fecha"].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {client.workOrders.map((o) => {
+                  const s = STATUS[o.status] ?? { label: o.status, color: "bg-gray-100 text-gray-700" };
+                  const cost = o.finalCost ?? o.estimatedCost;
+                  return (
+                    <tr
+                      key={o.id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => router.push(`/work-orders/${o.id}`)}
+                    >
+                      <td className="px-4 py-2.5 text-sm text-gray-900 max-w-[200px]">
+                        <p className="truncate">{o.description}</p>
+                      </td>
+                      <td className="px-4 py-2.5 text-sm font-mono text-gray-500">
+                        {o.vehicle.plate}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${s.color}`}>
+                          {s.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-sm text-gray-600">
+                        {cost != null ? `$${cost.toLocaleString("es-AR")}` : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-gray-400">
+                        {relativeTime(o.createdAt)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </section>

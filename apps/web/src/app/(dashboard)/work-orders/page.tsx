@@ -7,6 +7,8 @@ import { Pencil } from "lucide-react";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
+import { relativeTime } from "@/lib/relative-time";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type WorkOrder = {
   id: string;
@@ -29,7 +31,7 @@ const STATUS: Record<string, { label: string; color: string }> = {
   CANCELLED:     { label: "Cancelado",        color: "bg-red-100 text-red-800" },
 };
 
-const FILTER_TABS = [
+const STATUS_TABS = [
   { key: "", label: "Todas" },
   { key: "TODAY", label: "Hoy" },
   { key: "PENDING", label: "Pendientes" },
@@ -44,41 +46,42 @@ export default function WorkOrdersPage() {
   const [editTarget, setEditTarget] = useState<WorkOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const qc = useQueryClient();
   const router = useRouter();
 
+  const isToday = statusFilter === "TODAY";
+
   const { data: orders, isLoading } = useQuery<WorkOrder[]>({
-    queryKey: ["work-orders"],
-    queryFn: () => api.get("/work-orders").then((r) => r.data),
+    queryKey: ["work-orders", debouncedSearch, isToday ? "" : statusFilter],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (!isToday && statusFilter) params.set("status", statusFilter);
+      const qs = params.toString();
+      return api.get(`/work-orders${qs ? `?${qs}` : ""}`).then((r) => r.data);
+    },
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.patch(`/work-orders/${id}`, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["work-orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["work-orders"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
+    },
   });
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const filtered = orders?.filter((o) => {
-    if (statusFilter === "TODAY") {
-      const created = new Date(o.createdAt);
-      return created >= todayStart;
-    }
-    const matchStatus = !statusFilter || o.status === statusFilter;
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      o.description.toLowerCase().includes(q) ||
-      o.client.name.toLowerCase().includes(q) ||
-      o.vehicle.plate.toLowerCase().includes(q);
-    return matchStatus && matchSearch;
-  });
+  const filtered = isToday
+    ? orders?.filter((o) => new Date(o.createdAt) >= todayStart)
+    : orders;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-semibold text-gray-900">Órdenes de trabajo</h1>
         <button
           onClick={() => setCreateOpen(true)}
@@ -97,7 +100,7 @@ export default function WorkOrdersPage() {
           className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:max-w-xs"
         />
         <div className="flex gap-1 flex-wrap">
-          {FILTER_TABS.map((tab) => (
+          {STATUS_TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setStatusFilter(tab.key)}
@@ -114,7 +117,11 @@ export default function WorkOrdersPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg h-16 animate-pulse" />
+          ))}
+        </div>
       ) : (
         <div className="space-y-2">
           {filtered?.map((o) => {
@@ -122,7 +129,7 @@ export default function WorkOrdersPage() {
             return (
               <div
                 key={o.id}
-                className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-4 hover:border-blue-200 transition-colors"
+                className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-3 hover:border-blue-200 transition-colors"
               >
                 <button
                   className="min-w-0 text-left flex-1"
@@ -130,12 +137,17 @@ export default function WorkOrdersPage() {
                 >
                   <p className="text-sm font-medium text-gray-900 truncate">{o.description}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {o.client.name} · {o.vehicle.brand} {o.vehicle.model} ({o.vehicle.plate})
+                    {o.client.name} · <span className="font-mono">{o.vehicle.plate}</span>
+                    {" "}· {o.vehicle.brand} {o.vehicle.model}
                   </p>
                 </button>
 
+                <span className="text-xs text-gray-400 shrink-0 hidden sm:block">
+                  {relativeTime(o.createdAt)}
+                </span>
+
                 <button
-                  onClick={() => setEditTarget(o)}
+                  onClick={(e) => { e.stopPropagation(); setEditTarget(o); }}
                   className="shrink-0 text-gray-400 hover:text-gray-700 p-1 rounded"
                   title="Editar"
                 >
@@ -144,7 +156,7 @@ export default function WorkOrdersPage() {
 
                 <select
                   value={o.status}
-                  onChange={(e) => statusMutation.mutate({ id: o.id, status: e.target.value })}
+                  onChange={(e) => { e.stopPropagation(); statusMutation.mutate({ id: o.id, status: e.target.value }); }}
                   onClick={(e) => e.stopPropagation()}
                   className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer appearance-none pr-6 ${s.color}`}
                   style={{
@@ -162,7 +174,7 @@ export default function WorkOrdersPage() {
             );
           })}
           {!filtered?.length && (
-            <p className="text-center text-sm text-gray-400 py-10">
+            <p className="text-center text-sm text-gray-400 py-12">
               {search || statusFilter ? "Sin resultados." : "Todavía no hay órdenes."}
             </p>
           )}
@@ -170,7 +182,7 @@ export default function WorkOrdersPage() {
       )}
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nueva orden de trabajo">
-        <WorkOrderForm onSuccess={() => setCreateOpen(false)} />
+        <WorkOrderForm onSuccess={() => { setCreateOpen(false); qc.invalidateQueries({ queryKey: ["work-orders"] }); qc.invalidateQueries({ queryKey: ["dashboard-overview"] }); }} />
       </Modal>
 
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar orden">
