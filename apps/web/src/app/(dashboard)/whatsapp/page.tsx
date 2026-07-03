@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send, UserCheck } from "lucide-react";
 import { api } from "@/lib/api";
+import { relativeTime } from "@/lib/relative-time";
 
 type Conversation = {
   phone: string;
@@ -29,6 +30,7 @@ export default function WhatsAppPage() {
   const [text, setText] = useState("");
   const [classifyOpen, setClassifyOpen] = useState(false);
   const [classifyClientId, setClassifyClientId] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
   const { data: conversations } = useQuery<Conversation[]>({
@@ -50,6 +52,11 @@ export default function WhatsAppPage() {
     enabled: classifyOpen,
   });
 
+  // Scroll to bottom whenever messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const sendMutation = useMutation({
     mutationFn: () =>
       api.post(`/whatsapp/conversations/${selectedPhone}/send`, { text }),
@@ -67,6 +74,7 @@ export default function WhatsAppPage() {
       }),
     onSuccess: () => {
       setClassifyOpen(false);
+      setClassifyClientId("");
       qc.invalidateQueries({ queryKey: ["wa-conversations"] });
       qc.invalidateQueries({ queryKey: ["wa-messages", selectedPhone] });
     },
@@ -75,48 +83,49 @@ export default function WhatsAppPage() {
   const selected = conversations?.find((c) => c.phone === selectedPhone);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] -m-8 overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] -m-6 overflow-hidden">
       {/* Conversation list */}
       <div className="w-72 shrink-0 border-r border-gray-200 bg-white flex flex-col">
         <div className="px-4 py-4 border-b border-gray-200">
           <h1 className="text-base font-semibold text-gray-900">WhatsApp</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Mensajes recibidos</p>
+          <p className="text-xs text-gray-400 mt-0.5">Mensajes de clientes</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {!conversations?.length && (
-            <p className="px-4 py-8 text-sm text-gray-400 text-center">
-              Sin mensajes aún.
-            </p>
+            <p className="px-4 py-8 text-sm text-gray-400 text-center">Sin mensajes aún.</p>
           )}
           {conversations?.map((conv) => (
             <button
               key={conv.phone}
-              onClick={() => setSelectedPhone(conv.phone)}
+              onClick={() => { setSelectedPhone(conv.phone); setClassifyOpen(false); }}
               className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                selectedPhone === conv.phone ? "bg-blue-50" : ""
+                selectedPhone === conv.phone ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {conv.client?.name ?? (
-                    <span className="text-orange-600">Sin clasificar</span>
+                    <span className="text-orange-500">Sin clasificar</span>
                   )}
                 </p>
                 {conv.unread > 0 && (
-                  <span className="shrink-0 bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 font-medium">
+                  <span className="shrink-0 bg-blue-600 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-medium">
                     {conv.unread}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">{conv.phone}</p>
-              <p className="text-xs text-gray-400 truncate mt-0.5">{conv.lastMessage}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{conv.phone}</p>
+              <div className="flex items-center justify-between mt-0.5">
+                <p className="text-xs text-gray-400 truncate flex-1 mr-2">{conv.lastMessage}</p>
+                <p className="text-xs text-gray-300 shrink-0">{relativeTime(conv.lastAt)}</p>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-gray-50 min-w-0">
         {!selectedPhone ? (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-gray-400 text-sm">Seleccioná una conversación</p>
@@ -124,32 +133,32 @@ export default function WhatsAppPage() {
         ) : (
           <>
             {/* Chat header */}
-            <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between gap-4 shrink-0">
               <div>
                 <p className="text-sm font-semibold text-gray-900">
                   {selected?.client?.name ?? (
-                    <span className="text-orange-600">Sin clasificar</span>
+                    <span className="text-orange-500">Sin clasificar</span>
                   )}
                 </p>
-                <p className="text-xs text-gray-500">{selectedPhone}</p>
+                <p className="text-xs text-gray-400">{selectedPhone}</p>
               </div>
               {!selected?.client && (
                 <button
-                  onClick={() => setClassifyOpen(true)}
-                  className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700"
+                  onClick={() => setClassifyOpen((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs bg-orange-500 text-white px-3 py-1.5 rounded-md hover:bg-orange-600"
                 >
                   <UserCheck size={13} /> Asociar cliente
                 </button>
               )}
             </div>
 
-            {/* Classify modal */}
+            {/* Classify panel */}
             {classifyOpen && (
-              <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 flex items-center gap-3">
+              <div className="bg-yellow-50 border-b border-yellow-200 px-5 py-3 flex items-center gap-3 shrink-0">
                 <select
                   value={classifyClientId}
                   onChange={(e) => setClassifyClientId(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm flex-1"
+                  className="border border-gray-300 rounded px-2 py-1.5 text-sm flex-1 bg-white"
                 >
                   <option value="">Seleccioná un cliente...</option>
                   {clients?.map((c) => (
@@ -159,12 +168,15 @@ export default function WhatsAppPage() {
                 <button
                   onClick={() => classifyMutation.mutate()}
                   disabled={!classifyClientId || classifyMutation.isPending}
-                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+                  className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50 font-medium"
                 >
-                  Guardar
+                  {classifyMutation.isPending ? "..." : "Guardar"}
                 </button>
-                <button onClick={() => setClassifyOpen(false)} className="text-gray-500 text-sm">
-                  Cancelar
+                <button
+                  onClick={() => setClassifyOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 text-sm"
+                >
+                  ✕
                 </button>
               </div>
             )}
@@ -180,10 +192,10 @@ export default function WhatsAppPage() {
                     className={`max-w-xs lg:max-w-md px-3 py-2 rounded-2xl text-sm ${
                       m.direction === "OUTBOUND"
                         ? "bg-blue-600 text-white rounded-br-sm"
-                        : "bg-white border border-gray-200 text-gray-900 rounded-bl-sm"
+                        : "bg-white border border-gray-200 text-gray-900 rounded-bl-sm shadow-sm"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{m.body}</p>
+                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
                     <p
                       className={`text-xs mt-1 ${
                         m.direction === "OUTBOUND" ? "text-blue-200" : "text-gray-400"
@@ -197,10 +209,11 @@ export default function WhatsAppPage() {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Send */}
-            <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-2">
+            <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-2 shrink-0">
               <input
                 type="text"
                 value={text}
@@ -211,13 +224,13 @@ export default function WhatsAppPage() {
                     sendMutation.mutate();
                   }
                 }}
-                placeholder="Escribí un mensaje..."
-                className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Escribí un mensaje... (Enter para enviar)"
+                className="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               />
               <button
                 onClick={() => sendMutation.mutate()}
                 disabled={!text.trim() || sendMutation.isPending}
-                className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-40"
+                className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 disabled:opacity-40 shrink-0"
               >
                 <Send size={16} />
               </button>

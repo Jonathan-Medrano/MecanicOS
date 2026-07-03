@@ -1,10 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { relativeTime } from "@/lib/relative-time";
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -39,6 +42,8 @@ type ClientDetail = {
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const qc = useQueryClient();
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
 
   const { data: client, isLoading } = useQuery<ClientDetail>({
     queryKey: ["clients", id],
@@ -120,12 +125,20 @@ export default function ClientDetailPage() {
           <h2 className="text-sm font-semibold text-gray-900">
             Órdenes <span className="text-gray-400 font-normal">({client.workOrders.length})</span>
           </h2>
-          <Link
-            href={`/work-orders?clientId=${client.id}`}
-            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-          >
-            Ver en órdenes <ExternalLink size={11} />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/work-orders?clientId=${client.id}`}
+              className="text-xs text-gray-500 hover:underline flex items-center gap-1"
+            >
+              Ver todas <ExternalLink size={11} />
+            </Link>
+            <button
+              onClick={() => setNewOrderOpen(true)}
+              className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md hover:bg-blue-700"
+            >
+              <Plus size={12} /> Nueva orden
+            </button>
+          </div>
         </div>
 
         {client.workOrders.length === 0 ? (
@@ -177,6 +190,16 @@ export default function ClientDetailPage() {
           </div>
         )}
       </section>
+
+      <Modal open={newOrderOpen} onClose={() => setNewOrderOpen(false)} title="Nueva orden de trabajo">
+        <WorkOrderForm
+          defaultClientId={client.id}
+          onSuccess={() => {
+            setNewOrderOpen(false);
+            qc.invalidateQueries({ queryKey: ["clients", id] });
+          }}
+        />
+      </Modal>
     </div>
   );
 }

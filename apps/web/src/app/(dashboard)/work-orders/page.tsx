@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
@@ -41,23 +41,30 @@ const STATUS_TABS = [
   { key: "DELIVERED", label: "Entregadas" },
 ];
 
-export default function WorkOrdersPage() {
+function WorkOrdersInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const qc = useQueryClient();
+
+  const initialStatus = searchParams.get("status") ?? "";
+  const initialClientId = searchParams.get("clientId") ?? "";
+
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WorkOrder | null>(null);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
-  const qc = useQueryClient();
-  const router = useRouter();
 
   const isToday = statusFilter === "TODAY";
 
   const { data: orders, isLoading } = useQuery<WorkOrder[]>({
-    queryKey: ["work-orders", debouncedSearch, isToday ? "" : statusFilter],
+    queryKey: ["work-orders", debouncedSearch, isToday ? "" : statusFilter, initialClientId],
     queryFn: () => {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (!isToday && statusFilter) params.set("status", statusFilter);
+      if (initialClientId) params.set("clientId", initialClientId);
       const qs = params.toString();
       return api.get(`/work-orders${qs ? `?${qs}` : ""}`).then((r) => r.data);
     },
@@ -72,6 +79,16 @@ export default function WorkOrdersPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/work-orders/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["work-orders"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
+    },
+    onError: (e: any) =>
+      setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
+  });
+
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
@@ -82,7 +99,12 @@ export default function WorkOrdersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-semibold text-gray-900">Órdenes de trabajo</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Órdenes de trabajo</h1>
+          {initialClientId && (
+            <p className="text-sm text-gray-500 mt-0.5">Filtradas por cliente</p>
+          )}
+        </div>
         <button
           onClick={() => setCreateOpen(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
@@ -90,6 +112,12 @@ export default function WorkOrdersPage() {
           + Nueva orden
         </button>
       </div>
+
+      {deleteError && (
+        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
@@ -126,6 +154,7 @@ export default function WorkOrdersPage() {
         <div className="space-y-2">
           {filtered?.map((o) => {
             const s = STATUS[o.status] ?? { label: o.status, color: "bg-gray-100 text-gray-700" };
+            const isChangingStatus = statusMutation.isPending && (statusMutation.variables as any)?.id === o.id;
             return (
               <div
                 key={o.id}
@@ -154,11 +183,25 @@ export default function WorkOrdersPage() {
                   <Pencil size={14} />
                 </button>
 
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteError(null);
+                    if (!confirm(`¿Eliminar la orden "${o.description.slice(0, 40)}"?`)) return;
+                    deleteMutation.mutate(o.id);
+                  }}
+                  className="shrink-0 text-gray-400 hover:text-red-600 p-1 rounded"
+                  title="Eliminar"
+                >
+                  <Trash2 size={14} />
+                </button>
+
                 <select
                   value={o.status}
+                  disabled={isChangingStatus}
                   onChange={(e) => { e.stopPropagation(); statusMutation.mutate({ id: o.id, status: e.target.value }); }}
                   onClick={(e) => e.stopPropagation()}
-                  className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer appearance-none pr-6 ${s.color}`}
+                  className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer appearance-none pr-6 transition-opacity ${s.color} ${isChangingStatus ? "opacity-50" : ""}`}
                   style={{
                     backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")",
                     backgroundRepeat: "no-repeat",
@@ -182,7 +225,13 @@ export default function WorkOrdersPage() {
       )}
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nueva orden de trabajo">
-        <WorkOrderForm onSuccess={() => { setCreateOpen(false); qc.invalidateQueries({ queryKey: ["work-orders"] }); qc.invalidateQueries({ queryKey: ["dashboard-overview"] }); }} />
+        <WorkOrderForm
+          onSuccess={() => {
+            setCreateOpen(false);
+            qc.invalidateQueries({ queryKey: ["work-orders"] });
+            qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
+          }}
+        />
       </Modal>
 
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar orden">
@@ -191,5 +240,13 @@ export default function WorkOrdersPage() {
         )}
       </Modal>
     </div>
+  );
+}
+
+export default function WorkOrdersPage() {
+  return (
+    <Suspense>
+      <WorkOrdersInner />
+    </Suspense>
   );
 }
