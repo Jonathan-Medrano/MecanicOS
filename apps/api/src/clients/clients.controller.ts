@@ -25,8 +25,8 @@ export class ClientsController {
   }
 
   @Get()
-  findAll(@Req() req: any) {
-    return this.clientsService.findAll(req.auth.workshopId);
+  findAll(@Req() req: any, @Query("search") search?: string) {
+    return this.clientsService.findAll(req.auth.workshopId, search);
   }
 
   @Get(":id")

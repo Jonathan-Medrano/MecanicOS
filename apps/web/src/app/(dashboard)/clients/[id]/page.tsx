@@ -104,8 +104,12 @@ export default function ClientDetailPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {client.vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">
+                  <tr
+                    key={v.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => router.push(`/vehicles/${v.id}`)}
+                  >
+                    <td className="px-4 py-2.5 text-sm font-medium text-blue-600">
                       {v.brand} {v.model}
                     </td>
                     <td className="px-4 py-2.5 text-sm font-mono text-gray-600">{v.plate}</td>

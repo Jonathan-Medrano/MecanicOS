@@ -7,6 +7,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { ClientForm } from "@/components/forms/client-form";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type Client = {
   id: string;
@@ -22,21 +23,13 @@ export default function ClientsPage() {
   const [editTarget, setEditTarget] = useState<Client | null>(null);
   const [search, setSearch] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(search, 300);
   const router = useRouter();
   const qc = useQueryClient();
 
   const { data: clients, isLoading } = useQuery<Client[]>({
-    queryKey: ["clients"],
-    queryFn: () => api.get("/clients").then((r) => r.data),
-  });
-
-  const filtered = clients?.filter((c) => {
-    const q = search.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(q) ||
-      c.phone.toLowerCase().includes(q) ||
-      (c.email ?? "").toLowerCase().includes(q)
-    );
+    queryKey: ["clients", debouncedSearch],
+    queryFn: () => api.get("/clients", { params: debouncedSearch ? { search: debouncedSearch } : undefined }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
@@ -99,7 +92,7 @@ export default function ClientsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered?.map((c) => (
+              {clients?.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <button
@@ -108,7 +101,6 @@ export default function ClientsPage() {
                     >
                       {c.name}
                     </button>
-                    {/* Show phone inline on mobile when phone col is hidden */}
                     <p className="text-xs text-gray-400 mt-0.5 sm:hidden">{c.phone}</p>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{c.phone}</td>
@@ -137,7 +129,7 @@ export default function ClientsPage() {
               ))}
             </tbody>
           </table>
-          {!filtered?.length && (
+          {!clients?.length && (
             <p className="px-4 py-12 text-center text-sm text-gray-400">
               {search ? "Sin resultados para esa búsqueda." : "Todavía no hay clientes."}
             </p>
@@ -148,11 +140,8 @@ export default function ClientsPage() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo cliente">
         <ClientForm onSuccess={() => setCreateOpen(false)} />
       </Modal>
-
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar cliente">
-        {editTarget && (
-          <ClientForm client={editTarget} onSuccess={() => setEditTarget(null)} />
-        )}
+        {editTarget && <ClientForm client={editTarget} onSuccess={() => setEditTarget(null)} />}
       </Modal>
     </div>
   );

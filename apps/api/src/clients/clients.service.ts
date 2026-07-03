@@ -21,9 +21,19 @@ export class ClientsService {
     });
   }
 
-  findAll(workshopId: string) {
+  findAll(workshopId: string, search?: string) {
+    const q = search?.trim();
     return this.prisma.client.findMany({
-      where: { workshopId },
+      where: {
+        workshopId,
+        ...(q ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { phone: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+          ],
+        } : {}),
+      },
       orderBy: { name: "asc" },
       include: { _count: { select: { vehicles: true, workOrders: true } } },
     });

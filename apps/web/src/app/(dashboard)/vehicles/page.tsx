@@ -7,6 +7,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { VehicleForm } from "@/components/forms/vehicle-form";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type Vehicle = {
   id: string;
@@ -29,25 +30,17 @@ export default function VehiclesPage() {
   const qc = useQueryClient();
   const router = useRouter();
 
+  const debouncedSearch = useDebounce(search, 300);
+
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
-    queryKey: ["vehicles"],
-    queryFn: () => api.get("/vehicles").then((r) => r.data),
+    queryKey: ["vehicles", debouncedSearch],
+    queryFn: () => api.get("/vehicles", { params: debouncedSearch ? { search: debouncedSearch } : undefined }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/vehicles/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
     onError: (e: any) => setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
-  });
-
-  const filtered = vehicles?.filter((v) => {
-    const q = search.toLowerCase();
-    return (
-      v.brand.toLowerCase().includes(q) ||
-      v.model.toLowerCase().includes(q) ||
-      v.plate.toLowerCase().includes(q) ||
-      v.client.name.toLowerCase().includes(q)
-    );
   });
 
   return (
@@ -97,7 +90,7 @@ export default function VehiclesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered?.map((v) => (
+              {vehicles?.map((v) => (
                 <tr key={v.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/vehicles/${v.id}`)}>
                   <td className="px-4 py-3 text-sm">
                     <p className="font-medium text-gray-900">{v.brand} {v.model}</p>
@@ -136,7 +129,7 @@ export default function VehiclesPage() {
               ))}
             </tbody>
           </table>
-          {!filtered?.length && (
+          {!vehicles?.length && (
             <p className="px-4 py-12 text-center text-sm text-gray-400">
               {search ? "Sin resultados." : "Todavía no hay vehículos."}
             </p>

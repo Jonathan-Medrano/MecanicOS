@@ -127,7 +127,18 @@ function WorkOrdersInner() {
           placeholder="Buscar por descripción, cliente o patente..."
           className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:max-w-xs"
         />
-        <div className="flex gap-1 flex-wrap">
+        {/* Mobile: select */}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="sm:hidden border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          {STATUS_TABS.map((tab) => (
+            <option key={tab.key} value={tab.key}>{tab.label}</option>
+          ))}
+        </select>
+        {/* Desktop: tabs */}
+        <div className="hidden sm:flex gap-1 flex-wrap">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.key}
@@ -168,6 +179,9 @@ function WorkOrdersInner() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     {o.client.name} · <span className="font-mono">{o.vehicle.plate}</span>
                     {" "}· {o.vehicle.brand} {o.vehicle.model}
+                    {(o.finalCost != null || o.estimatedCost != null) && (
+                      <span className="text-gray-400"> · ${(o.finalCost ?? o.estimatedCost)!.toLocaleString("es-AR")}</span>
+                    )}
                   </p>
                 </button>
 

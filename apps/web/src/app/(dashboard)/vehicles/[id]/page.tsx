@@ -185,6 +185,7 @@ export default function VehicleDetailPage() {
       <Modal open={newOrderOpen} onClose={() => setNewOrderOpen(false)} title="Nueva orden de trabajo">
         <WorkOrderForm
           defaultClientId={vehicle.client.id}
+          defaultVehicleId={vehicle.id}
           onSuccess={() => {
             setNewOrderOpen(false);
             qc.invalidateQueries({ queryKey: ["vehicles", id] });

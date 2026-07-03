@@ -39,9 +39,10 @@ interface WorkOrderFormProps {
   onSuccess: () => void;
   workOrder?: WorkOrderData;
   defaultClientId?: string;
+  defaultVehicleId?: string;
 }
 
-export function WorkOrderForm({ onSuccess, workOrder, defaultClientId }: WorkOrderFormProps) {
+export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVehicleId }: WorkOrderFormProps) {
   const qc = useQueryClient();
   const isEdit = !!workOrder;
   const [selectedClientId, setSelectedClientId] = useState(defaultClientId ?? "");
@@ -60,7 +61,10 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId }: WorkOrd
 
   const createForm = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: defaultClientId ? { clientId: defaultClientId } : undefined,
+    defaultValues: {
+      ...(defaultClientId ? { clientId: defaultClientId } : {}),
+      ...(defaultVehicleId ? { vehicleId: defaultVehicleId } : {}),
+    },
   });
 
   const editForm = useForm<EditValues>({

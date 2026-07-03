@@ -22,9 +22,21 @@ export class VehiclesService {
     });
   }
 
-  findAll(workshopId: string, clientId?: string) {
+  findAll(workshopId: string, clientId?: string, search?: string) {
+    const q = search?.trim();
     return this.prisma.vehicle.findMany({
-      where: { workshopId, ...(clientId ? { clientId } : {}) },
+      where: {
+        workshopId,
+        ...(clientId ? { clientId } : {}),
+        ...(q ? {
+          OR: [
+            { brand: { contains: q, mode: "insensitive" } },
+            { model: { contains: q, mode: "insensitive" } },
+            { plate: { contains: q, mode: "insensitive" } },
+            { client: { name: { contains: q, mode: "insensitive" } } },
+          ],
+        } : {}),
+      },
       orderBy: { brand: "asc" },
       include: {
         client: { select: { id: true, name: true, phone: true } },

@@ -26,8 +26,8 @@ export class VehiclesController {
   }
 
   @Get()
-  findAll(@Req() req: any, @Query("clientId") clientId?: string) {
-    return this.vehiclesService.findAll(req.auth.workshopId, clientId);
+  findAll(@Req() req: any, @Query("clientId") clientId?: string, @Query("search") search?: string) {
+    return this.vehiclesService.findAll(req.auth.workshopId, clientId, search);
   }
 
   @Get(":id")
