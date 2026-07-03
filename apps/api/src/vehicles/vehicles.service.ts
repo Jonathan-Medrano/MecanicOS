@@ -66,6 +66,14 @@ export class VehiclesService {
 
   async remove(workshopId: string, id: string) {
     await this.findOne(workshopId, id);
+    const activeOrders = await this.prisma.workOrder.count({
+      where: { vehicleId: id, status: { notIn: ["DELIVERED", "CANCELLED"] } },
+    });
+    if (activeOrders > 0) {
+      throw new ConflictException(
+        `El vehículo tiene ${activeOrders} orden(es) activa(s). Cerrala(s) antes de eliminarlo.`,
+      );
+    }
     return this.prisma.vehicle.delete({ where: { id } });
   }
 }

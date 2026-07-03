@@ -31,6 +31,7 @@ const STATUS: Record<string, { label: string; color: string }> = {
 
 const FILTER_TABS = [
   { key: "", label: "Todas" },
+  { key: "TODAY", label: "Hoy" },
   { key: "PENDING", label: "Pendientes" },
   { key: "IN_PROGRESS", label: "En progreso" },
   { key: "WAITING_PARTS", label: "Esperando" },
@@ -57,7 +58,14 @@ export default function WorkOrdersPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["work-orders"] }),
   });
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   const filtered = orders?.filter((o) => {
+    if (statusFilter === "TODAY") {
+      const created = new Date(o.createdAt);
+      return created >= todayStart;
+    }
     const matchStatus = !statusFilter || o.status === statusFilter;
     const q = search.toLowerCase();
     const matchSearch =
