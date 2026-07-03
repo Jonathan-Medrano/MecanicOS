@@ -67,7 +67,7 @@ export default function WorkOrderDetailPage() {
     <div className="space-y-5 max-w-3xl">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <button onClick={() => router.back()} className="mt-1 text-gray-400 hover:text-gray-600 p-1 rounded shrink-0">
+        <button onClick={() => router.back()} className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 shrink-0">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
@@ -76,10 +76,10 @@ export default function WorkOrderDetailPage() {
             Creada {fmt(order.createdAt)}
           </p>
         </div>
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="shrink-0 flex flex-wrap items-center gap-2">
           <button
             onClick={() => setEditOpen(true)}
-            className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-50"
+            className="text-xs border border-gray-300 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-50"
           >
             Editar
           </button>
@@ -87,14 +87,14 @@ export default function WorkOrderDetailPage() {
             href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api"}/pdf/work-orders/${order.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-50"
+            className="flex items-center gap-1 text-xs border border-gray-300 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-50"
           >
             <FileDown size={13} /> PDF
           </a>
           <select
             value={order.status}
             onChange={(e) => statusMutation.mutate(e.target.value)}
-            className={`text-xs font-medium px-3 py-1.5 rounded-full border-0 cursor-pointer appearance-none ${s.color}`}
+            className={`text-xs font-medium px-3 py-2 rounded-full border-0 cursor-pointer appearance-none min-w-[100px] ${s.color}`}
           >
             {Object.entries(STATUS).map(([k, v]) => (
               <option key={k} value={k}>{v.label}</option>
@@ -132,7 +132,7 @@ export default function WorkOrderDetailPage() {
       {/* Timeline */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Línea de tiempo</p>
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           {[
             { label: "Creada",     date: order.createdAt },
             { label: "Iniciada",   date: order.startedAt },

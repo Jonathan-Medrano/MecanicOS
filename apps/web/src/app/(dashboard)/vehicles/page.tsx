@@ -50,13 +50,13 @@ export default function VehiclesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-semibold text-gray-900">Vehículos</h1>
+      <div className="flex items-center justify-between mb-5 gap-3">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Vehículos</h1>
         <button
           onClick={() => setCreateOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+          className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
         >
-          + Nuevo vehículo
+          + Nuevo
         </button>
       </div>
 
@@ -83,36 +83,39 @@ export default function VehiclesPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {["Vehículo", "Patente", "Propietario", "Órdenes", ""].map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    {h}
-                  </th>
-                ))}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Vehículo</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Patente</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">Propietario</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">Órdenes</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered?.map((v) => (
                 <tr key={v.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">
-                    <span className="font-medium text-gray-900">{v.brand} {v.model}</span>
-                    {v.color && <span className="ml-2 text-xs text-gray-400">{v.color}</span>}
-                    <span className="ml-2 text-xs text-gray-400">{v.year}</span>
+                    <p className="font-medium text-gray-900">{v.brand} {v.model}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {[v.year, v.color].filter(Boolean).join(" · ")}
+                    </p>
+                    {/* Propietario inline on mobile */}
+                    <p className="text-xs text-gray-500 mt-0.5 sm:hidden">{v.client.name}</p>
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-gray-600">{v.plate}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{v.client.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-center">{v._count.workOrders}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{v.client.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-center hidden sm:table-cell">{v._count.workOrders}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setEditTarget(v)}
-                        className="text-gray-400 hover:text-gray-700 p-1 rounded"
+                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
                         title="Editar"
                       >
-                        <Pencil size={14} />
+                        <Pencil size={15} />
                       </button>
                       <button
                         onClick={() => {
@@ -120,10 +123,10 @@ export default function VehiclesPage() {
                           if (!confirm(`¿Eliminar ${v.brand} ${v.model} (${v.plate})?`)) return;
                           deleteMutation.mutate(v.id);
                         }}
-                        className="text-gray-400 hover:text-red-600 p-1 rounded"
+                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                         title="Eliminar"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </td>

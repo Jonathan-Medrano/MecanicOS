@@ -177,10 +177,10 @@ function WorkOrdersInner() {
 
                 <button
                   onClick={(e) => { e.stopPropagation(); setEditTarget(o); }}
-                  className="shrink-0 text-gray-400 hover:text-gray-700 p-1 rounded"
+                  className="shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
                   title="Editar"
                 >
-                  <Pencil size={14} />
+                  <Pencil size={15} />
                 </button>
 
                 <button
@@ -190,10 +190,10 @@ function WorkOrdersInner() {
                     if (!confirm(`¿Eliminar la orden "${o.description.slice(0, 40)}"?`)) return;
                     deleteMutation.mutate(o.id);
                   }}
-                  className="shrink-0 text-gray-400 hover:text-red-600 p-1 rounded"
+                  className="shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                   title="Eliminar"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={15} />
                 </button>
 
                 <select

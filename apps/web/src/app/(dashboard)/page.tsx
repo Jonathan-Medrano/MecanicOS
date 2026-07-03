@@ -61,7 +61,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {STAT_CARDS.map((c) => (
           <Link
             key={c.label}

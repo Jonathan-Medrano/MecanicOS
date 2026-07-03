@@ -47,19 +47,19 @@ export default function ClientsPage() {
 
   const handleDelete = (c: Client) => {
     setDeleteError(null);
-    if (!confirm(`¿Eliminar a ${c.name}? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Eliminar a ${c.name}?`)) return;
     deleteMutation.mutate(c.id);
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-semibold text-gray-900">Clientes</h1>
+      <div className="flex items-center justify-between mb-5 gap-3">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Clientes</h1>
         <button
           onClick={() => setCreateOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+          className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
         >
-          + Nuevo cliente
+          + Nuevo
         </button>
       </div>
 
@@ -86,45 +86,50 @@ export default function ClientsPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {["Nombre", "Teléfono", "Email", "Vehículos", "Órdenes", ""].map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    {h}
-                  </th>
-                ))}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">Teléfono</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide hidden md:table-cell">Email</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">Vehículos</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">Órdenes</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered?.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
-                  <td
-                    className="px-4 py-3 text-sm font-medium text-blue-600 cursor-pointer hover:underline"
-                    onClick={() => router.push(`/clients/${c.id}`)}
-                  >
-                    {c.name}
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => router.push(`/clients/${c.id}`)}
+                      className="text-sm font-medium text-blue-600 hover:underline text-left"
+                    >
+                      {c.name}
+                    </button>
+                    {/* Show phone inline on mobile when phone col is hidden */}
+                    <p className="text-xs text-gray-400 mt-0.5 sm:hidden">{c.phone}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{c.phone}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{c.email ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-center">{c._count.vehicles}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-center">{c._count.workOrders}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{c.phone}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{c.email ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-center hidden sm:table-cell">{c._count.vehicles}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-center hidden sm:table-cell">{c._count.workOrders}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setEditTarget(c)}
-                        className="text-gray-400 hover:text-gray-700 p-1 rounded"
+                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
                         title="Editar"
                       >
-                        <Pencil size={14} />
+                        <Pencil size={15} />
                       </button>
                       <button
                         onClick={() => handleDelete(c)}
-                        className="text-gray-400 hover:text-red-600 p-1 rounded"
+                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                         title="Eliminar"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </td>

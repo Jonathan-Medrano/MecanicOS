@@ -57,7 +57,7 @@ export default function ClientDetailPage() {
     <div className="space-y-5 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 p-1 rounded">
+        <button onClick={() => router.back()} className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100">
           <ArrowLeft size={18} />
         </button>
         <h1 className="text-2xl font-semibold text-gray-900">{client.name}</h1>
@@ -91,7 +91,7 @@ export default function ClientDetailPage() {
         {client.vehicles.length === 0 ? (
           <p className="text-sm text-gray-400">Sin vehículos registrados.</p>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -144,7 +144,7 @@ export default function ClientDetailPage() {
         {client.workOrders.length === 0 ? (
           <p className="text-sm text-gray-400">Sin órdenes registradas.</p>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
