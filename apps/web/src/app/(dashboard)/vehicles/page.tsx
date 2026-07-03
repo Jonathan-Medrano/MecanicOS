@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
@@ -26,6 +27,7 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const qc = useQueryClient();
+  const router = useRouter();
 
   const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
     queryKey: ["vehicles"],
@@ -96,7 +98,7 @@ export default function VehiclesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered?.map((v) => (
-                <tr key={v.id} className="hover:bg-gray-50">
+                <tr key={v.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/vehicles/${v.id}`)}>
                   <td className="px-4 py-3 text-sm">
                     <p className="font-medium text-gray-900">{v.brand} {v.model}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -109,7 +111,7 @@ export default function VehiclesPage() {
                   <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{v.client.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 text-center hidden sm:table-cell">{v._count.workOrders}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => setEditTarget(v)}
                         className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"

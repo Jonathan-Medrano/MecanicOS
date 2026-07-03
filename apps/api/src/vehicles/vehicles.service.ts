@@ -46,6 +46,7 @@ export class VehiclesService {
             status: true,
             description: true,
             createdAt: true,
+            estimatedCost: true,
             finalCost: true,
           },
         },

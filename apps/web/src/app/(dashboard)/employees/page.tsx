@@ -34,13 +34,7 @@ type Employee = {
   clerkUserId?: string;
 };
 
-function EmployeeForm({
-  employee,
-  onSuccess,
-}: {
-  employee?: Employee;
-  onSuccess: () => void;
-}) {
+function EmployeeForm({ employee, onSuccess }: { employee?: Employee; onSuccess: () => void }) {
   const qc = useQueryClient();
   const isEdit = !!employee;
 
@@ -54,9 +48,7 @@ function EmployeeForm({
 
   const mutation = useMutation({
     mutationFn: (data: any) =>
-      isEdit
-        ? api.patch(`/employees/${employee.id}`, data)
-        : api.post("/employees", data),
+      isEdit ? api.patch(`/employees/${employee.id}`, data) : api.post("/employees", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["employees"] });
       onSuccess();
@@ -65,27 +57,16 @@ function EmployeeForm({
   });
 
   const togglePerm = (key: string) =>
-    setPermissions((prev) =>
-      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key],
-    );
-
-  const applyPreset = (preset: keyof typeof PRESETS) =>
-    setPermissions(PRESETS[preset]);
+    setPermissions((prev) => prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]);
 
   return (
     <div className="space-y-4">
       {!isEdit && (
         <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => applyPreset("mechanic")}
-            className="text-xs border border-gray-300 rounded px-2 py-1 hover:bg-gray-50"
-          >
+          <button onClick={() => setPermissions(PRESETS.mechanic)} className="text-xs border border-gray-300 rounded-md px-2 py-2 hover:bg-gray-50">
             Preset: Mecánico
           </button>
-          <button
-            onClick={() => applyPreset("receptionist")}
-            className="text-xs border border-gray-300 rounded px-2 py-1 hover:bg-gray-50"
-          >
+          <button onClick={() => setPermissions(PRESETS.receptionist)} className="text-xs border border-gray-300 rounded-md px-2 py-2 hover:bg-gray-50">
             Preset: Recepcionista
           </button>
         </div>
@@ -95,76 +76,49 @@ function EmployeeForm({
         <>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+            <input value={name} onChange={(e) => setName(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="Juan Pérez"
-            />
+              placeholder="Juan Pérez" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="juan@taller.com"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              El empleado recibirá un link para acceder con este email.
-            </p>
+              placeholder="juan@taller.com" />
+            <p className="text-xs text-gray-400 mt-1">El empleado accederá con este email.</p>
           </div>
         </>
       )}
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Teléfono WhatsApp
-        </label>
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+        <label className="block text-xs font-medium text-gray-700 mb-1">Teléfono WhatsApp</label>
+        <input value={phone} onChange={(e) => setPhone(e.target.value)}
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          placeholder="+5491112345678"
-        />
-        <p className="text-xs text-gray-400 mt-1">
-          Si lo agregás, podrá usar el bot de WhatsApp.
-        </p>
+          placeholder="+5491112345678" />
+        <p className="text-xs text-gray-400 mt-1">Si lo agregás, podrá usar el bot de WhatsApp.</p>
       </div>
 
       <div>
         <p className="text-xs font-medium text-gray-700 mb-2">Permisos</p>
-        <div className="space-y-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {ALL_PERMISSIONS.map((p) => (
-            <label key={p.key} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={permissions.includes(p.key)}
-                onChange={() => togglePerm(p.key)}
-                className="rounded"
-              />
+            <label key={p.key} className="flex items-center gap-2 cursor-pointer py-0.5">
+              <input type="checkbox" checked={permissions.includes(p.key)} onChange={() => togglePerm(p.key)} className="rounded" />
               <span className="text-sm text-gray-700">{p.label}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>}
 
       <div className="flex justify-end pt-2">
         <button
-          onClick={() =>
-            mutation.mutate({ name, email, phone: phone || undefined, permissions })
-          }
+          onClick={() => mutation.mutate({ name, email, phone: phone || undefined, permissions })}
           disabled={mutation.isPending || (!isEdit && (!name || !email))}
           className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
         >
-          {mutation.isPending
-            ? "Guardando..."
-            : isEdit
-              ? "Guardar cambios"
-              : "Agregar empleado"}
+          {mutation.isPending ? "Guardando..." : isEdit ? "Guardar cambios" : "Agregar empleado"}
         </button>
       </div>
     </div>
@@ -174,6 +128,7 @@ function EmployeeForm({
 export default function EmployeesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const { data: employees, isLoading } = useQuery<Employee[]>({
@@ -184,45 +139,51 @@ export default function EmployeesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/employees/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+    onError: (e: any) => setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
   });
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Empleados</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Los empleados pueden acceder a la web y al bot de WhatsApp según sus permisos.
+      <div className="flex items-start justify-between mb-6 gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Empleados</h1>
+          <p className="text-sm text-gray-500 mt-1 hidden sm:block">
+            Acceso a la web y al bot de WhatsApp según sus permisos.
           </p>
         </div>
         <button
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+          className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap shrink-0"
         >
-          <UserPlus size={15} /> Agregar empleado
+          <UserPlus size={15} />
+          <span className="hidden sm:inline">Agregar empleado</span>
+          <span className="sm:hidden">Agregar</span>
         </button>
       </div>
 
+      {deleteError && (
+        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
+          {deleteError}
+        </div>
+      )}
+
       {isLoading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 h-24 animate-pulse" />
+          ))}
+        </div>
       ) : (
         <div className="space-y-3">
           {employees?.map((emp) => (
-            <div
-              key={emp.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 flex items-start justify-between gap-4"
-            >
+            <div key={emp.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-medium text-gray-900">{emp.name}</p>
                   {emp.clerkUserId ? (
-                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                      Activo
-                    </span>
+                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Activo</span>
                   ) : (
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
-                      Pendiente de registro
-                    </span>
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">Pendiente de registro</span>
                   )}
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">{emp.email}</p>
@@ -231,38 +192,44 @@ export default function EmployeesPage() {
                 )}
                 <div className="flex flex-wrap gap-1 mt-2">
                   {emp.permissions.map((p) => (
-                    <span
-                      key={p}
-                      className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded"
-                    >
+                    <span key={p} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
                       {ALL_PERMISSIONS.find((x) => x.key === p)?.label ?? p}
                     </span>
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={() => setEditTarget(emp)}
-                  className="text-gray-400 hover:text-gray-700 p-1 rounded"
+                  className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
+                  title="Editar"
                 >
-                  <Pencil size={14} />
+                  <Pencil size={15} />
                 </button>
                 <button
                   onClick={() => {
+                    setDeleteError(null);
                     if (!confirm(`¿Eliminar a ${emp.name}?`)) return;
                     deleteMutation.mutate(emp.id);
                   }}
-                  className="text-gray-400 hover:text-red-600 p-1 rounded"
+                  className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                  title="Eliminar"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>
           ))}
           {!employees?.length && (
-            <p className="text-center text-sm text-gray-400 py-10">
-              Todavía no hay empleados. Agregá el primero.
-            </p>
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-sm">Todavía no hay empleados.</p>
+              <button
+                onClick={() => setCreateOpen(true)}
+                className="mt-3 text-xs bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                + Agregar el primero
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -270,15 +237,8 @@ export default function EmployeesPage() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Agregar empleado">
         <EmployeeForm onSuccess={() => setCreateOpen(false)} />
       </Modal>
-
-      <Modal
-        open={!!editTarget}
-        onClose={() => setEditTarget(null)}
-        title="Editar empleado"
-      >
-        {editTarget && (
-          <EmployeeForm employee={editTarget} onSuccess={() => setEditTarget(null)} />
-        )}
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar empleado">
+        {editTarget && <EmployeeForm employee={editTarget} onSuccess={() => setEditTarget(null)} />}
       </Modal>
     </div>
   );

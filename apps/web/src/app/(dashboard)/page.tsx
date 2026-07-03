@@ -49,7 +49,7 @@ export default function DashboardPage() {
 
   const STAT_CARDS = [
     { label: "Activas",     value: stats?.activeOrders,     href: "/work-orders", color: "text-blue-600" },
-    { label: "Hoy",         value: stats?.todayOrders,      href: "/work-orders?date=today", color: "text-indigo-600" },
+    { label: "Hoy",         value: stats?.todayOrders,      href: "/work-orders?status=TODAY", color: "text-indigo-600" },
     { label: "Pendientes",  value: stats?.pendingOrders,    href: "/work-orders?status=PENDING", color: "text-yellow-600" },
     { label: "En progreso", value: stats?.inProgressOrders, href: "/work-orders?status=IN_PROGRESS", color: "text-orange-600" },
     { label: "Clientes",    value: stats?.totalClients,     href: "/clients", color: "text-gray-700" },
