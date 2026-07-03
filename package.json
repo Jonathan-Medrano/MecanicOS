@@ -1,0 +1,20 @@
+{
+  "name": "mecanico",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @mecanico/shared build && turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "pnpm --filter api prisma generate",
+    "db:migrate": "pnpm --filter api prisma migrate dev",
+    "db:push": "pnpm --filter api prisma db push",
+    "db:studio": "pnpm --filter api prisma studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

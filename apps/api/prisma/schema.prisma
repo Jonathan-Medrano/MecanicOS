@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Tenant (one per workshop) ──────────────────────────────────────────────
+
+model Workshop {
+  id        String   @id @default(uuid())
+  clerkOrgId String  @unique
+  name      String
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients     Client[]
+  vehicles    Vehicle[]
+  workOrders  WorkOrder[]
+  messages    Message[]
+  employees   WorkshopEmployee[]
+  botSessions BotSession[]
+
+  @@map("workshops")
+}
+
+// ─── Client ─────────────────────────────────────────────────────────────────
+
+model Client {
+  id         String   @id @default(uuid())
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  name       String
+  phone      String
+  email      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  vehicles   Vehicle[]
+  workOrders WorkOrder[]
+  messages   Message[]
+
+  @@unique([workshopId, phone])
+  @@map("clients")
+}
+
+// ─── Vehicle ─────────────────────────────────────────────────────────────────
+
+model Vehicle {
+  id         String   @id @default(uuid())
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  brand     String
+  model     String
+  year      Int
+  plate     String
+  vin       String?
+  color     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workOrders WorkOrder[]
+
+  @@unique([workshopId, plate])
+  @@map("vehicles")
+}
+
+// ─── Work Order ──────────────────────────────────────────────────────────────
+
+model WorkOrder {
+  id         String          @id @default(uuid())
+  workshopId String
+  workshop   Workshop        @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     Client          @relation(fields: [clientId], references: [id])
+  vehicleId  String
+  vehicle    Vehicle         @relation(fields: [vehicleId], references: [id])
+
+  status        WorkOrderStatus @default(PENDING)
+  description   String
+  mechanicNotes String?
+  estimatedCost Decimal?        @db.Decimal(10, 2)
+  finalCost     Decimal?        @db.Decimal(10, 2)
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("work_orders")
+}
+
+enum WorkOrderStatus {
+  PENDING
+  IN_PROGRESS
+  WAITING_PARTS
+  DONE
+  DELIVERED
+  CANCELLED
+}
+
+// ─── Employees ───────────────────────────────────────────────────────────────
+
+model WorkshopEmployee {
+  id          String   @id @default(uuid())
+  workshopId  String
+  workshop    Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  clerkUserId String?  @unique   // null until they accept the invite
+  email       String
+  phone       String?            // for WhatsApp bot identification
+  name        String
+  permissions String[]           // e.g. ["VIEW_ORDERS","EDIT_ORDERS"]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workshopId, email])
+  @@map("workshop_employees")
+}
+
+// ─── WhatsApp Bot Sessions ────────────────────────────────────────────────────
+
+model BotSession {
+  id         String   @id @default(uuid())
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  phone      String
+  step       String   @default("IDLE")
+  context    Json?
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([workshopId, phone])
+  @@map("bot_sessions")
+}
+
+// ─── WhatsApp Messages ───────────────────────────────────────────────────────
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model Message {
+  id         String           @id @default(uuid())
+  workshopId String
+  workshop   Workshop         @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  phone      String
+  clientId   String?
+  client     Client?          @relation(fields: [clientId], references: [id])
+
+  direction  MessageDirection
+  body       String
+  waMsgId    String?          @unique
+
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([workshopId, phone])
+  @@map("messages")
+}

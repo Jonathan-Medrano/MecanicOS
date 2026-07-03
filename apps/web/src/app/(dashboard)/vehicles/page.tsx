@@ -1,0 +1,139 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pencil, Trash2 } from "lucide-react";
+import { api } from "@/lib/api";
+import { Modal } from "@/components/ui/modal";
+import { VehicleForm } from "@/components/forms/vehicle-form";
+
+type Vehicle = {
+  id: string;
+  clientId: string;
+  brand: string;
+  model: string;
+  year: number;
+  plate: string;
+  color?: string;
+  vin?: string;
+  client: { name: string };
+  _count: { workOrders: number };
+};
+
+export default function VehiclesPage() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Vehicle | null>(null);
+  const [search, setSearch] = useState("");
+  const qc = useQueryClient();
+
+  const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
+    queryKey: ["vehicles"],
+    queryFn: () => api.get("/vehicles").then((r) => r.data),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/vehicles/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+  });
+
+  const filtered = vehicles?.filter((v) => {
+    const q = search.toLowerCase();
+    return (
+      v.brand.toLowerCase().includes(q) ||
+      v.model.toLowerCase().includes(q) ||
+      v.plate.toLowerCase().includes(q) ||
+      v.client.name.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Vehículos</h1>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+        >
+          + Nuevo vehículo
+        </button>
+      </div>
+
+      <div className="mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por marca, patente o propietario..."
+          className="w-full max-w-sm border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {isLoading ? (
+        <p className="text-gray-400 text-sm">Cargando...</p>
+      ) : (
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {["Vehículo", "Patente", "Propietario", "Órdenes", ""].map((h, i) => (
+                  <th key={i} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered?.map((v) => (
+                <tr key={v.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    {v.brand} {v.model}{" "}
+                    <span className="text-gray-400 font-normal">{v.year}</span>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-600">{v.plate}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{v.client.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{v._count.workOrders}</td>
+                  <td className="px-4 py-3 text-sm text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setEditTarget(v)}
+                        className="text-gray-400 hover:text-gray-700 p-1 rounded"
+                        title="Editar"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!confirm(`¿Eliminar ${v.brand} ${v.model} (${v.plate})?`)) return;
+                          deleteMutation.mutate(v.id);
+                        }}
+                        className="text-gray-400 hover:text-red-600 p-1 rounded"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!filtered?.length && (
+            <p className="px-4 py-10 text-center text-sm text-gray-400">
+              {search ? "Sin resultados para esa búsqueda." : "Todavía no hay vehículos."}
+            </p>
+          )}
+        </div>
+      )}
+
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo vehículo">
+        <VehicleForm onSuccess={() => setCreateOpen(false)} />
+      </Modal>
+
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar vehículo">
+        {editTarget && (
+          <VehicleForm vehicle={editTarget} onSuccess={() => setEditTarget(null)} />
+        )}
+      </Modal>
+    </div>
+  );
+}
