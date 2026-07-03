@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { VehicleForm } from "@/components/forms/vehicle-form";
 import { useDebounce } from "@/hooks/use-debounce";
+import { toast } from "sonner";
 
 type Vehicle = {
   id: string;
@@ -26,7 +27,6 @@ export default function VehiclesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Vehicle | null>(null);
   const [search, setSearch] = useState("");
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const qc = useQueryClient();
   const router = useRouter();
 
@@ -39,8 +39,11 @@ export default function VehiclesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/vehicles/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
-    onError: (e: any) => setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
+    onSuccess: () => {
+      toast.success("Vehículo eliminado");
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar"),
   });
 
   return (
@@ -54,12 +57,6 @@ export default function VehiclesPage() {
           + Nuevo
         </button>
       </div>
-
-      {deleteError && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
-          {deleteError}
-        </div>
-      )}
 
       <div className="mb-4">
         <input
@@ -114,7 +111,6 @@ export default function VehiclesPage() {
                       </button>
                       <button
                         onClick={() => {
-                          setDeleteError(null);
                           if (!confirm(`¿Eliminar ${v.brand} ${v.model} (${v.plate})?`)) return;
                           deleteMutation.mutate(v.id);
                         }}

@@ -32,12 +32,14 @@ export class WorkOrdersController {
     @Query("vehicleId") vehicleId?: string,
     @Query("status") status?: string,
     @Query("search") search?: string,
+    @Query("scheduledDate") scheduledDate?: string,
   ) {
     return this.workOrdersService.findAll(req.auth.workshopId, {
       clientId,
       vehicleId,
       status,
       search,
+      scheduledDate,
     });
   }
 

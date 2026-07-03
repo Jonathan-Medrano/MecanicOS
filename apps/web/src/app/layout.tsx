@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthTokenSync } from "@/providers/auth-provider";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -23,6 +24,7 @@ export default function RootLayout({
         <ClerkProvider afterSignOutUrl="/sign-in">
           <QueryProvider>
             <AuthTokenSync>{children}</AuthTokenSync>
+            <Toaster position="bottom-right" richColors />
           </QueryProvider>
         </ClerkProvider>
       </body>

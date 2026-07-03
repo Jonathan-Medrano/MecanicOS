@@ -7,12 +7,14 @@ import { useState } from "react";
 import { z } from "zod";
 import { api } from "@/lib/api";
 import { Field, inputClass } from "@/components/ui/field";
+import { toast } from "sonner";
 
 const createSchema = z.object({
   clientId: z.string().uuid("Seleccioná un cliente"),
   vehicleId: z.string().uuid("Seleccioná un vehículo"),
   description: z.string().min(1, "Describí el trabajo"),
   estimatedCost: z.coerce.number().positive().optional().or(z.literal("")),
+  scheduledAt: z.string().optional(),
 });
 
 const editSchema = z.object({
@@ -85,9 +87,11 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
         ? api.patch(`/work-orders/${workOrder.id}`, data)
         : api.post("/work-orders", data),
     onSuccess: () => {
+      toast.success(isEdit ? "Orden actualizada" : "Orden creada");
       qc.invalidateQueries({ queryKey: ["work-orders"] });
       onSuccess();
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al guardar"),
   });
 
   if (isEdit) {
@@ -116,12 +120,6 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
           <textarea className={inputClass} {...register("mechanicNotes")} rows={3} placeholder="Observaciones internas..." />
         </Field>
 
-        {mutation.isError && (
-          <p className="text-sm text-red-600">
-            {(mutation.error as any)?.response?.data?.message ?? "Error al guardar"}
-          </p>
-        )}
-
         <div className="flex justify-end pt-2">
           <button
             type="submit"
@@ -137,8 +135,19 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = createForm;
 
+  const onSubmit = (d: CreateValues) => {
+    const payload: any = { ...d };
+    if (payload.scheduledAt) {
+      payload.scheduledAt = new Date(payload.scheduledAt).toISOString();
+    } else {
+      delete payload.scheduledAt;
+    }
+    if (!payload.estimatedCost) delete payload.estimatedCost;
+    mutation.mutate(payload);
+  };
+
   return (
-    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Field label="Cliente" error={errors.clientId?.message} required>
         <select
           className={inputClass}
@@ -171,15 +180,14 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
         <textarea className={inputClass} {...register("description")} rows={3} placeholder="Cambio de aceite y filtros..." />
       </Field>
 
-      <Field label="Presupuesto estimado ($)" error={errors.estimatedCost?.message}>
-        <input className={inputClass} {...register("estimatedCost")} type="number" step="0.01" placeholder="Opcional" />
-      </Field>
-
-      {mutation.isError && (
-        <p className="text-sm text-red-600">
-          {(mutation.error as any)?.response?.data?.message ?? "Error al guardar"}
-        </p>
-      )}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Presupuesto estimado ($)" error={errors.estimatedCost?.message}>
+          <input className={inputClass} {...register("estimatedCost")} type="number" step="0.01" placeholder="Opcional" />
+        </Field>
+        <Field label="Turno (fecha y hora)" error={errors.scheduledAt?.message}>
+          <input className={inputClass} {...register("scheduledAt")} type="datetime-local" />
+        </Field>
+      </div>
 
       <div className="flex justify-end pt-2">
         <button

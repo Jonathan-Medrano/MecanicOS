@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { CalendarClock } from "lucide-react";
 import { api } from "@/lib/api";
 import { relativeTime } from "@/lib/relative-time";
 
@@ -20,6 +21,7 @@ type RecentOrder = {
   description: string;
   status: string;
   createdAt: string;
+  scheduledAt?: string;
   estimatedCost?: number;
   client: { id: string; name: string };
   vehicle: { brand: string; model: string; plate: string };
@@ -42,6 +44,12 @@ export default function DashboardPage() {
   const { data, isLoading } = useQuery<Overview>({
     queryKey: ["dashboard-overview"],
     queryFn: () => api.get("/dashboard/overview").then((r) => r.data),
+    refetchInterval: 60_000,
+  });
+
+  const { data: todayScheduled } = useQuery<RecentOrder[]>({
+    queryKey: ["work-orders-scheduled-today"],
+    queryFn: () => api.get("/work-orders", { params: { scheduledDate: "today" } }).then((r) => r.data),
     refetchInterval: 60_000,
   });
 
@@ -75,6 +83,43 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* Today's scheduled */}
+      {(todayScheduled?.length ?? 0) > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarClock size={16} className="text-indigo-500" />
+            <h2 className="text-base font-semibold text-gray-900">Turnos de hoy</h2>
+            <span className="text-xs bg-indigo-100 text-indigo-700 font-medium px-2 py-0.5 rounded-full">
+              {todayScheduled!.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {todayScheduled!.map((o) => {
+              const s = STATUS[o.status] ?? { label: o.status, color: "bg-gray-100 text-gray-700" };
+              const time = o.scheduledAt ? new Date(o.scheduledAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
+              return (
+                <div
+                  key={o.id}
+                  onClick={() => router.push(`/work-orders/${o.id}`)}
+                  className="bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3 flex items-center gap-4 cursor-pointer hover:border-indigo-300 transition-all"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 truncate">{o.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {o.client.name} · <span className="font-mono">{o.vehicle.plate}</span>
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2">
+                    {time && <span className="text-xs font-mono font-semibold text-indigo-700">{time}</span>}
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${s.color}`}>{s.label}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Active orders */}
       <div>

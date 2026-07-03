@@ -3,8 +3,9 @@
 import { useState, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, CalendarClock } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { relativeTime } from "@/lib/relative-time";
@@ -15,6 +16,7 @@ type WorkOrder = {
   status: string;
   description: string;
   createdAt: string;
+  scheduledAt?: string;
   estimatedCost?: number;
   finalCost?: number;
   mechanicNotes?: string;
@@ -51,7 +53,6 @@ function WorkOrdersInner() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WorkOrder | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -74,19 +75,21 @@ function WorkOrdersInner() {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.patch(`/work-orders/${id}`, { status }),
     onSuccess: () => {
+      toast.success("Estado actualizado");
       qc.invalidateQueries({ queryKey: ["work-orders"] });
       qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al cambiar estado"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/work-orders/${id}`),
     onSuccess: () => {
+      toast.success("Orden eliminada");
       qc.invalidateQueries({ queryKey: ["work-orders"] });
       qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
     },
-    onError: (e: any) =>
-      setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar"),
   });
 
   const todayStart = new Date();
@@ -112,12 +115,6 @@ function WorkOrdersInner() {
           + Nueva orden
         </button>
       </div>
-
-      {deleteError && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
-          {deleteError}
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
@@ -185,6 +182,12 @@ function WorkOrdersInner() {
                   </p>
                 </button>
 
+                {o.scheduledAt && (
+                  <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-indigo-600 font-medium">
+                    <CalendarClock size={12} />
+                    {new Date(o.scheduledAt).toLocaleString("es-AR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
                 <span className="text-xs text-gray-400 shrink-0 hidden sm:block">
                   {relativeTime(o.createdAt)}
                 </span>
@@ -200,7 +203,6 @@ function WorkOrdersInner() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setDeleteError(null);
                     if (!confirm(`¿Eliminar la orden "${o.description.slice(0, 40)}"?`)) return;
                     deleteMutation.mutate(o.id);
                   }}

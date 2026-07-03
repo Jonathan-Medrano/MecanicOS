@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { LayoutDashboard, Users, Car, ClipboardList, MessageCircle, UserCog, Settings, X } from "lucide-react";
 import { useMe } from "@/hooks/use-me";
+import { useUnreadCount } from "@/hooks/use-unread-count";
 
 type NavItem = {
   href: string;
@@ -32,6 +33,7 @@ interface SidebarProps {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: me } = useMe();
+  const unreadCount = useUnreadCount();
 
   const canSee = (item: NavItem) => {
     if (!me) return true;
@@ -78,6 +80,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {NAV.filter(canSee).map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+            const badge = href === "/whatsapp" && unreadCount > 0 ? unreadCount : 0;
             return (
               <Link
                 key={href}
@@ -90,7 +93,12 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                {label}
+                <span className="flex-1">{label}</span>
+                {badge > 0 && (
+                  <span className="ml-auto bg-green-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
               </Link>
             );
           })}

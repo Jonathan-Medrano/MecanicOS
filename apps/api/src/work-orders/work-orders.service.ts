@@ -27,15 +27,24 @@ export class WorkOrdersService {
 
   findAll(
     workshopId: string,
-    filters?: { clientId?: string; vehicleId?: string; status?: string; search?: string },
+    filters?: { clientId?: string; vehicleId?: string; status?: string; search?: string; scheduledDate?: string },
   ) {
     const search = filters?.search?.trim();
+    let scheduledAtFilter: any = undefined;
+    if (filters?.scheduledDate === "today") {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      scheduledAtFilter = { scheduledAt: { gte: start, lte: end } };
+    }
     return this.prisma.workOrder.findMany({
       where: {
         workshopId,
         ...(filters?.clientId ? { clientId: filters.clientId } : {}),
         ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
         ...(filters?.status ? { status: filters.status as any } : {}),
+        ...(scheduledAtFilter ?? {}),
         ...(search
           ? {
               OR: [
@@ -46,7 +55,7 @@ export class WorkOrdersService {
             }
           : {}),
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
       include: {
         client: { select: { id: true, name: true, phone: true } },
         vehicle: { select: { id: true, brand: true, model: true, plate: true } },

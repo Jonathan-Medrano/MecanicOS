@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { ClientForm } from "@/components/forms/client-form";
 import { useDebounce } from "@/hooks/use-debounce";
+import { toast } from "sonner";
 
 type Client = {
   id: string;
@@ -22,7 +23,6 @@ export default function ClientsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Client | null>(null);
   const [search, setSearch] = useState("");
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const debouncedSearch = useDebounce(search, 300);
   const router = useRouter();
   const qc = useQueryClient();
@@ -34,12 +34,14 @@ export default function ClientsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/clients/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
-    onError: (e: any) => setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
+    onSuccess: () => {
+      toast.success("Cliente eliminado");
+      qc.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar"),
   });
 
   const handleDelete = (c: Client) => {
-    setDeleteError(null);
     if (!confirm(`¿Eliminar a ${c.name}?`)) return;
     deleteMutation.mutate(c.id);
   };
@@ -55,12 +57,6 @@ export default function ClientsPage() {
           + Nuevo
         </button>
       </div>
-
-      {deleteError && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
-          {deleteError}
-        </div>
-      )}
 
       <div className="mb-4">
         <input

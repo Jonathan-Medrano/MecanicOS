@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "@/lib/api";
 import { Field, inputClass } from "@/components/ui/field";
+import { toast } from "sonner";
 
 const schema = z.object({
   name: z.string().min(2, "Mínimo 2 caracteres"),
@@ -42,9 +43,11 @@ export function ClientForm({ onSuccess, client }: ClientFormProps) {
         ? api.patch(`/clients/${client.id}`, data)
         : api.post("/clients", data),
     onSuccess: () => {
+      toast.success(isEdit ? "Cliente actualizado" : "Cliente creado");
       qc.invalidateQueries({ queryKey: ["clients"] });
       onSuccess();
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al guardar"),
   });
 
   return (
@@ -72,12 +75,6 @@ export function ClientForm({ onSuccess, client }: ClientFormProps) {
           placeholder="Info adicional..."
         />
       </Field>
-
-      {mutation.isError && (
-        <p className="text-sm text-red-600">
-          {(mutation.error as any)?.response?.data?.message ?? "Error al guardar"}
-        </p>
-      )}
 
       <div className="flex justify-end gap-2 pt-2">
         <button

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 
 const ALL_PERMISSIONS = [
@@ -50,10 +51,15 @@ function EmployeeForm({ employee, onSuccess }: { employee?: Employee; onSuccess:
     mutationFn: (data: any) =>
       isEdit ? api.patch(`/employees/${employee.id}`, data) : api.post("/employees", data),
     onSuccess: () => {
+      toast.success(isEdit ? "Empleado actualizado" : "Empleado agregado");
       qc.invalidateQueries({ queryKey: ["employees"] });
       onSuccess();
     },
-    onError: (e: any) => setError(e.response?.data?.message ?? "Error al guardar"),
+    onError: (e: any) => {
+      const msg = e.response?.data?.message ?? "Error al guardar";
+      setError(msg);
+      toast.error(msg);
+    },
   });
 
   const togglePerm = (key: string) =>
@@ -128,7 +134,6 @@ function EmployeeForm({ employee, onSuccess }: { employee?: Employee; onSuccess:
 export default function EmployeesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const { data: employees, isLoading } = useQuery<Employee[]>({
@@ -138,8 +143,11 @@ export default function EmployeesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/employees/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
-    onError: (e: any) => setDeleteError(e.response?.data?.message ?? "Error al eliminar"),
+    onSuccess: () => {
+      toast.success("Empleado eliminado");
+      qc.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar"),
   });
 
   return (
@@ -160,12 +168,6 @@ export default function EmployeesPage() {
           <span className="sm:hidden">Agregar</span>
         </button>
       </div>
-
-      {deleteError && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
-          {deleteError}
-        </div>
-      )}
 
       {isLoading ? (
         <div className="space-y-3">
@@ -208,7 +210,6 @@ export default function EmployeesPage() {
                 </button>
                 <button
                   onClick={() => {
-                    setDeleteError(null);
                     if (!confirm(`¿Eliminar a ${emp.name}?`)) return;
                     deleteMutation.mutate(emp.id);
                   }}

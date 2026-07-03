@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "@/lib/api";
 import { Field, inputClass } from "@/components/ui/field";
+import { toast } from "sonner";
 
 const schema = z.object({
   clientId: z.string().uuid("Seleccioná un cliente"),
@@ -68,9 +69,11 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
     mutationFn: (data: FormValues) =>
       isEdit ? api.patch(`/vehicles/${vehicle.id}`, data) : api.post("/vehicles", data),
     onSuccess: () => {
+      toast.success(isEdit ? "Vehículo actualizado" : "Vehículo creado");
       qc.invalidateQueries({ queryKey: ["vehicles"] });
       onSuccess();
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al guardar"),
   });
 
   return (
@@ -110,12 +113,6 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
           <input className={inputClass} {...register("vin")} placeholder="Opcional" />
         </Field>
       </div>
-
-      {mutation.isError && (
-        <p className="text-sm text-red-600">
-          {(mutation.error as any)?.response?.data?.message ?? "Error al guardar"}
-        </p>
-      )}
 
       <div className="flex justify-end pt-2">
         <button
