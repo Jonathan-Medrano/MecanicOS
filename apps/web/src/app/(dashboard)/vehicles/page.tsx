@@ -19,6 +19,7 @@ type Vehicle = {
   plate: string;
   color?: string;
   vin?: string;
+  notes?: string;
   client: { name: string };
   _count: { workOrders: number };
 };

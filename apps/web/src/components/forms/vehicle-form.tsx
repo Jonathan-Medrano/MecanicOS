@@ -16,6 +16,7 @@ const schema = z.object({
   plate: z.string().min(1, "Requerido"),
   color: z.string().optional(),
   vin: z.string().optional(),
+  notes: z.string().max(500).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -29,6 +30,7 @@ type VehicleData = {
   plate: string;
   color?: string;
   vin?: string;
+  notes?: string;
 };
 
 interface VehicleFormProps {
@@ -61,6 +63,7 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
           plate: vehicle.plate,
           color: vehicle.color ?? "",
           vin: vehicle.vin ?? "",
+          notes: vehicle.notes ?? "",
         }
       : { clientId: clientId ?? "", year: new Date().getFullYear() },
   });
@@ -113,6 +116,10 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
           <input className={inputClass} {...register("vin")} placeholder="Opcional" />
         </Field>
       </div>
+
+      <Field label="Notas" error={errors.notes?.message}>
+        <textarea className={inputClass} {...register("notes")} rows={2} placeholder="Observaciones del vehículo..." />
+      </Field>
 
       <div className="flex justify-end pt-2">
         <button

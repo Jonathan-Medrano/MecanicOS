@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft, FileDown } from "lucide-react";
+import { ArrowLeft, FileDown, CalendarClock } from "lucide-react";
+import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { useState } from "react";
@@ -26,10 +27,11 @@ type WorkOrderDetail = {
   estimatedCost?: number;
   finalCost?: number;
   createdAt: string;
+  scheduledAt?: string;
   startedAt?: string;
   completedAt?: string;
   client: { id: string; name: string; phone: string };
-  vehicle: { brand: string; model: string; plate: string; year?: number; color?: string };
+  vehicle: { id: string; brand: string; model: string; plate: string; year?: number; color?: string };
 };
 
 export default function WorkOrderDetailPage() {
@@ -46,10 +48,12 @@ export default function WorkOrderDetailPage() {
   const statusMutation = useMutation({
     mutationFn: (status: string) => api.patch(`/work-orders/${id}`, { status }),
     onSuccess: () => {
+      toast.success("Estado actualizado");
       qc.invalidateQueries({ queryKey: ["work-orders"] });
       qc.invalidateQueries({ queryKey: ["work-orders", id] });
       qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al cambiar estado"),
   });
 
   if (isLoading) return <p className="text-gray-400 text-sm">Cargando...</p>;
@@ -117,9 +121,12 @@ export default function WorkOrderDetailPage() {
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Vehículo</p>
-          <p className="text-sm font-medium text-gray-900">
+          <Link
+            href={`/vehicles/${order.vehicle.id}`}
+            className="text-sm font-medium text-blue-600 hover:underline"
+          >
             {order.vehicle.brand} {order.vehicle.model}
-          </p>
+          </Link>
           <p className="text-sm font-mono text-gray-500 mt-0.5">{order.vehicle.plate}</p>
           {(order.vehicle.year || order.vehicle.color) && (
             <p className="text-xs text-gray-400 mt-0.5">
@@ -132,7 +139,17 @@ export default function WorkOrderDetailPage() {
       {/* Timeline */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Línea de tiempo</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          {order.scheduledAt && (
+            <div>
+              <p className="text-xs text-indigo-500 flex items-center gap-1">
+                <CalendarClock size={11} /> Turno
+              </p>
+              <p className="font-medium text-gray-900 mt-0.5">
+                {new Date(order.scheduledAt).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
+          )}
           {[
             { label: "Creada",     date: order.createdAt },
             { label: "Iniciada",   date: order.startedAt },

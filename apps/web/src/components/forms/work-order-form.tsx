@@ -22,6 +22,7 @@ const editSchema = z.object({
   estimatedCost: z.coerce.number().positive().optional().or(z.literal("")),
   finalCost: z.coerce.number().positive().optional().or(z.literal("")),
   mechanicNotes: z.string().max(2000).optional(),
+  scheduledAt: z.string().optional(),
 });
 
 type CreateValues = z.infer<typeof createSchema>;
@@ -33,6 +34,7 @@ type WorkOrderData = {
   estimatedCost?: number;
   finalCost?: number;
   mechanicNotes?: string;
+  scheduledAt?: string;
   client: { name: string };
   vehicle: { brand: string; model: string; plate: string };
 };
@@ -77,6 +79,9 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
           estimatedCost: workOrder.estimatedCost ?? "",
           finalCost: workOrder.finalCost ?? "",
           mechanicNotes: workOrder.mechanicNotes ?? "",
+          scheduledAt: workOrder.scheduledAt
+            ? new Date(workOrder.scheduledAt).toISOString().slice(0, 16)
+            : "",
         }
       : undefined,
   });
@@ -96,8 +101,19 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
 
   if (isEdit) {
     const { register, handleSubmit, formState: { errors, isSubmitting } } = editForm;
+    const onEditSubmit = (d: EditValues) => {
+      const payload: any = { ...d };
+      if (payload.scheduledAt) {
+        payload.scheduledAt = new Date(payload.scheduledAt).toISOString();
+      } else {
+        delete payload.scheduledAt;
+      }
+      if (!payload.estimatedCost) delete payload.estimatedCost;
+      if (!payload.finalCost) delete payload.finalCost;
+      mutation.mutate(payload);
+    };
     return (
-      <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+      <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
         <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-600">
           <p className="font-medium text-gray-700">{workOrder.client.name}</p>
           <p>{workOrder.vehicle.brand} {workOrder.vehicle.model} – {workOrder.vehicle.plate}</p>
@@ -115,6 +131,10 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
             <input className={inputClass} {...register("finalCost")} type="number" step="0.01" placeholder="Opcional" />
           </Field>
         </div>
+
+        <Field label="Turno (fecha y hora)" error={errors.scheduledAt?.message}>
+          <input className={inputClass} {...register("scheduledAt")} type="datetime-local" />
+        </Field>
 
         <Field label="Notas del mecánico" error={errors.mechanicNotes?.message}>
           <textarea className={inputClass} {...register("mechanicNotes")} rows={3} placeholder="Observaciones internas..." />

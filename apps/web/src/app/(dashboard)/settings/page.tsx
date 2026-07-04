@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/hooks/use-me";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const qc = useQueryClient();
@@ -12,7 +13,6 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (me?.workshop) {
@@ -26,10 +26,10 @@ export default function SettingsPage() {
     mutationFn: (data: { name: string; phone: string; address: string }) =>
       api.patch("/workshop/settings", data),
     onSuccess: () => {
+      toast.success("Configuración guardada");
       qc.invalidateQueries({ queryKey: ["me"] });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al guardar"),
   });
 
   if (!me?.isOwner) {
@@ -98,12 +98,6 @@ export default function SettingsPage() {
             >
               {mutation.isPending ? "Guardando..." : "Guardar cambios"}
             </button>
-            {saved && (
-              <span className="text-sm text-green-600">¡Cambios guardados!</span>
-            )}
-            {mutation.isError && (
-              <span className="text-sm text-red-600">Error al guardar</span>
-            )}
           </div>
         </div>
       )}

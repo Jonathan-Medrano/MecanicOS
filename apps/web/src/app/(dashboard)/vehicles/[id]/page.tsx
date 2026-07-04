@@ -36,6 +36,7 @@ type VehicleDetail = {
   plate: string;
   color?: string;
   vin?: string;
+  notes?: string;
   client: { id: string; name: string; phone: string };
   workOrders: WorkOrder[];
 };
@@ -94,6 +95,13 @@ export default function VehicleDetailPage() {
           </div>
         ))}
       </div>
+
+      {vehicle.notes && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-xs text-amber-700 font-medium uppercase tracking-wide mb-1">Notas</p>
+          <p className="text-sm text-gray-800 whitespace-pre-wrap">{vehicle.notes}</p>
+        </div>
+      )}
 
       {/* Owner */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
