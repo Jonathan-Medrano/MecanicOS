@@ -11,6 +11,8 @@ import { WhatsAppModule } from "./whatsapp/whatsapp.module";
 import { PdfModule } from "./pdf/pdf.module";
 import { EmployeesModule } from "./employees/employees.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { GuidesModule } from "./guides/guides.module";
+import { AssistantModule } from "./assistant/assistant.module";
 import { ClerkAuthGuard } from "./common/guards/clerk-auth.guard";
 import { PermissionsGuard } from "./common/guards/permissions.guard";
 
@@ -27,6 +29,8 @@ import { PermissionsGuard } from "./common/guards/permissions.guard";
     PdfModule,
     EmployeesModule,
     NotificationsModule,
+    GuidesModule,
+    AssistantModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ClerkAuthGuard },

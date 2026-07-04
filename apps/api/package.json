@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@clerk/backend": "^3.10.0",
+    "@google/generative-ai": "^0.24.1",
     "@mecanico/shared": "workspace:*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
