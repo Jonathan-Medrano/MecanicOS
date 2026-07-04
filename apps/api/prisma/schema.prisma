@@ -98,7 +98,31 @@ model WorkOrder {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
+  items WorkOrderItem[]
+
   @@map("work_orders")
+}
+
+// ─── Work Order Items ─────────────────────────────────────────────────────────
+
+model WorkOrderItem {
+  id          String            @id @default(uuid())
+  workOrderId String
+  workOrder   WorkOrder         @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  type        WorkOrderItemType
+  description String
+  quantity    Decimal           @db.Decimal(10, 3)
+  unitPrice   Decimal           @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+
+  @@map("work_order_items")
+}
+
+enum WorkOrderItemType {
+  PART
+  LABOR
 }
 
 enum WorkOrderStatus {

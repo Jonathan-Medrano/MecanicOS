@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft, FileDown, CalendarClock } from "lucide-react";
+import { ArrowLeft, FileDown, CalendarClock, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
@@ -17,6 +17,14 @@ const STATUS: Record<string, { label: string; color: string }> = {
   DONE:          { label: "Listo",            color: "bg-green-100 text-green-800" },
   DELIVERED:     { label: "Entregado",        color: "bg-gray-100 text-gray-700" },
   CANCELLED:     { label: "Cancelado",        color: "bg-red-100 text-red-800" },
+};
+
+type WorkOrderItem = {
+  id: string;
+  type: "PART" | "LABOR";
+  description: string;
+  quantity: number;
+  unitPrice: number;
 };
 
 type WorkOrderDetail = {
@@ -32,7 +40,204 @@ type WorkOrderDetail = {
   completedAt?: string;
   client: { id: string; name: string; phone: string };
   vehicle: { id: string; brand: string; model: string; plate: string; year?: number; color?: string };
+  items: WorkOrderItem[];
 };
+
+type ItemFormData = { type: "PART" | "LABOR"; description: string; quantity: number; unitPrice: number };
+const EMPTY_ITEM: ItemFormData = { type: "PART", description: "", quantity: 1, unitPrice: 0 };
+
+function ItemRow({
+  item,
+  onDelete,
+  onUpdate,
+}: {
+  item: WorkOrderItem;
+  onDelete: () => void;
+  onUpdate: (data: Partial<WorkOrderItem>) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    type: item.type,
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+  });
+
+  const total = Number(item.quantity) * Number(item.unitPrice);
+
+  if (!editing) {
+    return (
+      <tr className="group border-b border-gray-100 last:border-0">
+        <td className="py-2 pr-3">
+          <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded ${item.type === "PART" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"}`}>
+            {item.type === "PART" ? "Repuesto" : "M.O."}
+          </span>
+        </td>
+        <td className="py-2 pr-3 text-sm text-gray-800">{item.description}</td>
+        <td className="py-2 pr-3 text-sm text-gray-600 text-right tabular-nums">{Number(item.quantity).toLocaleString("es-AR")}</td>
+        <td className="py-2 pr-3 text-sm text-gray-600 text-right tabular-nums">${Number(item.unitPrice).toLocaleString("es-AR")}</td>
+        <td className="py-2 text-sm font-medium text-gray-900 text-right tabular-nums">${total.toLocaleString("es-AR")}</td>
+        <td className="py-2 pl-3 w-14">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+            <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-gray-600 p-1 rounded">
+              <Pencil size={12} />
+            </button>
+            <button onClick={onDelete} className="text-gray-400 hover:text-red-500 p-1 rounded">
+              <Trash2 size={12} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr className="border-b border-gray-100 last:border-0 bg-gray-50">
+      <td className="py-2 pr-2">
+        <select
+          value={form.type}
+          onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "PART" | "LABOR" }))}
+          className="text-xs border border-gray-300 rounded px-1.5 py-1 bg-white w-full"
+        >
+          <option value="PART">Repuesto</option>
+          <option value="LABOR">M.O.</option>
+        </select>
+      </td>
+      <td className="py-2 pr-2">
+        <input
+          type="text"
+          value={form.description}
+          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          className="text-xs border border-gray-300 rounded px-2 py-1 w-full"
+          autoFocus
+        />
+      </td>
+      <td className="py-2 pr-2">
+        <input
+          type="number"
+          value={form.quantity}
+          min={0.001}
+          step={0.001}
+          onChange={(e) => setForm((f) => ({ ...f, quantity: parseFloat(e.target.value) || 0 }))}
+          className="text-xs border border-gray-300 rounded px-2 py-1 w-20 text-right"
+        />
+      </td>
+      <td className="py-2 pr-2">
+        <input
+          type="number"
+          value={form.unitPrice}
+          min={0}
+          step={0.01}
+          onChange={(e) => setForm((f) => ({ ...f, unitPrice: parseFloat(e.target.value) || 0 }))}
+          className="text-xs border border-gray-300 rounded px-2 py-1 w-24 text-right"
+        />
+      </td>
+      <td className="py-2 text-sm font-medium text-gray-900 text-right tabular-nums">
+        ${(form.quantity * form.unitPrice).toLocaleString("es-AR")}
+      </td>
+      <td className="py-2 pl-2 w-14">
+        <div className="flex gap-1 justify-end">
+          <button
+            onClick={() => { onUpdate(form); setEditing(false); }}
+            className="text-green-600 hover:text-green-700 p-1 rounded"
+          >
+            <Check size={13} />
+          </button>
+          <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded">
+            <X size={13} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function AddItemRow({ onAdd }: { onAdd: (data: ItemFormData) => void }) {
+  const [form, setForm] = useState<ItemFormData>(EMPTY_ITEM);
+  const [open, setOpen] = useState(false);
+
+  const handle = () => {
+    if (!form.description.trim()) return;
+    onAdd(form);
+    setForm(EMPTY_ITEM);
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <tr>
+        <td colSpan={6} className="pt-3">
+          <button
+            onClick={() => setOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
+          >
+            <Plus size={13} /> Agregar item
+          </button>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr className="bg-blue-50/40 border-t border-blue-100">
+      <td className="pt-3 pb-2 pr-2">
+        <select
+          value={form.type}
+          onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "PART" | "LABOR" }))}
+          className="text-xs border border-gray-300 rounded px-1.5 py-1.5 bg-white w-full"
+        >
+          <option value="PART">Repuesto</option>
+          <option value="LABOR">M.O.</option>
+        </select>
+      </td>
+      <td className="pt-3 pb-2 pr-2">
+        <input
+          type="text"
+          placeholder="Descripción"
+          value={form.description}
+          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          className="text-xs border border-gray-300 rounded px-2 py-1.5 w-full"
+          autoFocus
+          onKeyDown={(e) => e.key === "Enter" && handle()}
+        />
+      </td>
+      <td className="pt-3 pb-2 pr-2">
+        <input
+          type="number"
+          value={form.quantity}
+          min={0.001}
+          step={0.001}
+          onChange={(e) => setForm((f) => ({ ...f, quantity: parseFloat(e.target.value) || 0 }))}
+          className="text-xs border border-gray-300 rounded px-2 py-1.5 w-20 text-right"
+        />
+      </td>
+      <td className="pt-3 pb-2 pr-2">
+        <input
+          type="number"
+          value={form.unitPrice}
+          min={0}
+          step={0.01}
+          onChange={(e) => setForm((f) => ({ ...f, unitPrice: parseFloat(e.target.value) || 0 }))}
+          className="text-xs border border-gray-300 rounded px-2 py-1.5 w-24 text-right"
+          placeholder="0"
+        />
+      </td>
+      <td className="pt-3 pb-2 text-sm font-medium text-gray-900 text-right tabular-nums">
+        ${(form.quantity * form.unitPrice).toLocaleString("es-AR")}
+      </td>
+      <td className="pt-3 pb-2 pl-2 w-14">
+        <div className="flex gap-1 justify-end">
+          <button onClick={handle} className="text-green-600 hover:text-green-700 p-1 rounded">
+            <Check size={13} />
+          </button>
+          <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded">
+            <X size={13} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 export default function WorkOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +261,34 @@ export default function WorkOrderDetailPage() {
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al cambiar estado"),
   });
 
+  const addItemMutation = useMutation({
+    mutationFn: (dto: ItemFormData) => api.post(`/work-orders/${id}/items`, dto),
+    onSuccess: () => {
+      toast.success("Item agregado");
+      qc.invalidateQueries({ queryKey: ["work-orders", id] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al agregar item"),
+  });
+
+  const updateItemMutation = useMutation({
+    mutationFn: ({ itemId, data }: { itemId: string; data: Partial<WorkOrderItem> }) =>
+      api.patch(`/work-orders/${id}/items/${itemId}`, data),
+    onSuccess: () => {
+      toast.success("Item actualizado");
+      qc.invalidateQueries({ queryKey: ["work-orders", id] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al actualizar item"),
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: (itemId: string) => api.delete(`/work-orders/${id}/items/${itemId}`),
+    onSuccess: () => {
+      toast.success("Item eliminado");
+      qc.invalidateQueries({ queryKey: ["work-orders", id] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar item"),
+  });
+
   if (isLoading) return <p className="text-gray-400 text-sm">Cargando...</p>;
   if (!order) return <p className="text-sm text-red-500">Orden no encontrada.</p>;
 
@@ -64,8 +297,13 @@ export default function WorkOrderDetailPage() {
     d
       ? new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
       : "—";
-  const money = (n?: number) =>
-    n != null ? `$${n.toLocaleString("es-AR")}` : "—";
+  const money = (n: number) => `$${n.toLocaleString("es-AR")}`;
+
+  const itemsTotal = (order.items ?? []).reduce(
+    (acc, it) => acc + Number(it.quantity) * Number(it.unitPrice),
+    0,
+  );
+  const hasItems = order.items && order.items.length > 0;
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -177,19 +415,57 @@ export default function WorkOrderDetailPage() {
         )}
       </div>
 
-      {/* Costs */}
+      {/* Presupuesto (items) */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Costos</p>
-        <div className="flex items-start gap-8 text-sm">
-          <div>
-            <p className="text-xs text-gray-500">Presupuesto</p>
-            <p className="text-lg font-semibold text-gray-900 mt-0.5">{money(order.estimatedCost)}</p>
-          </div>
-          {order.finalCost != null && (
-            <div>
-              <p className="text-xs text-gray-500">Costo final</p>
-              <p className="text-lg font-semibold text-green-700 mt-0.5">{money(order.finalCost)}</p>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Presupuesto</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="pb-2 text-[10px] font-semibold text-gray-400 uppercase pr-3">Tipo</th>
+                <th className="pb-2 text-[10px] font-semibold text-gray-400 uppercase pr-3">Descripción</th>
+                <th className="pb-2 text-[10px] font-semibold text-gray-400 uppercase pr-3 text-right">Cant.</th>
+                <th className="pb-2 text-[10px] font-semibold text-gray-400 uppercase pr-3 text-right">P. Unit.</th>
+                <th className="pb-2 text-[10px] font-semibold text-gray-400 uppercase text-right">Total</th>
+                <th className="pb-2 w-14" />
+              </tr>
+            </thead>
+            <tbody>
+              {(order.items ?? []).map((item) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  onDelete={() => deleteItemMutation.mutate(item.id)}
+                  onUpdate={(data) => updateItemMutation.mutate({ itemId: item.id, data })}
+                />
+              ))}
+              <AddItemRow onAdd={(data) => addItemMutation.mutate(data)} />
+            </tbody>
+          </table>
+        </div>
+
+        {/* Totals */}
+        <div className="mt-4 pt-3 border-t border-gray-100 space-y-1.5">
+          {hasItems && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Subtotal items</span>
+              <span className="font-semibold text-gray-900 tabular-nums">{money(itemsTotal)}</span>
             </div>
+          )}
+          {order.estimatedCost != null && !hasItems && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Presupuesto estimado</span>
+              <span className="font-semibold text-gray-900 tabular-nums">{money(Number(order.estimatedCost))}</span>
+            </div>
+          )}
+          {order.finalCost != null && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Costo final</span>
+              <span className="font-semibold text-green-700 tabular-nums">{money(Number(order.finalCost))}</span>
+            </div>
+          )}
+          {!hasItems && order.estimatedCost == null && order.finalCost == null && (
+            <p className="text-xs text-gray-400">Sin items ni costos cargados aún.</p>
           )}
         </div>
       </div>

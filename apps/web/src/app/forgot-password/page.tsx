@@ -8,7 +8,7 @@ import Link from "next/link";
 type Step = "request" | "verify";
 
 export default function ForgotPasswordPage() {
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const { signIn, fetchStatus } = useSignIn();
   const router = useRouter();
 
   const [step, setStep] = useState<Step>("request");
@@ -18,19 +18,20 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const isLoaded = fetchStatus !== "fetching";
+
   async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!signIn) return;
     setLoading(true);
     setError("");
     try {
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email,
-      });
+      await signIn.create({ identifier: email });
+      const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode();
+      if (sendError) throw sendError;
       setStep("verify");
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? "Error al enviar el código");
+      setError(err?.longMessage ?? err?.errors?.[0]?.longMessage ?? "Error al enviar el código");
     } finally {
       setLoading(false);
     }
@@ -38,21 +39,18 @@ export default function ForgotPasswordPage() {
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!signIn) return;
     setLoading(true);
     setError("");
     try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: "reset_password_email_code",
-        code,
-        password: newPassword,
-      });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/");
-      }
+      const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code });
+      if (verifyError) throw verifyError;
+      const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({ password: newPassword });
+      if (submitError) throw submitError;
+      await signIn.finalize();
+      router.push("/");
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? "Código o contraseña inválidos");
+      setError(err?.longMessage ?? err?.errors?.[0]?.longMessage ?? "Código o contraseña inválidos");
     } finally {
       setLoading(false);
     }

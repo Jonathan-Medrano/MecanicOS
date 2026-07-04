@@ -10,7 +10,12 @@ import {
   Req,
 } from "@nestjs/common";
 import { WorkOrdersService } from "./work-orders.service";
-import { CreateWorkOrderSchema, UpdateWorkOrderSchema } from "@mecanico/shared";
+import {
+  CreateWorkOrderSchema,
+  UpdateWorkOrderSchema,
+  CreateWorkOrderItemSchema,
+  UpdateWorkOrderItemSchema,
+} from "@mecanico/shared";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 
 @Controller("work-orders")
@@ -60,5 +65,33 @@ export class WorkOrdersController {
   @Delete(":id")
   remove(@Req() req: any, @Param("id") id: string) {
     return this.workOrdersService.remove(req.auth.workshopId, id);
+  }
+
+  @Post(":id/items")
+  addItem(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(CreateWorkOrderItemSchema)) dto: unknown,
+  ) {
+    return this.workOrdersService.addItem(req.auth.workshopId, id, dto as any);
+  }
+
+  @Patch(":id/items/:itemId")
+  updateItem(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Param("itemId") itemId: string,
+    @Body(new ZodValidationPipe(UpdateWorkOrderItemSchema)) dto: unknown,
+  ) {
+    return this.workOrdersService.updateItem(req.auth.workshopId, id, itemId, dto as any);
+  }
+
+  @Delete(":id/items/:itemId")
+  removeItem(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Param("itemId") itemId: string,
+  ) {
+    return this.workOrdersService.removeItem(req.auth.workshopId, id, itemId);
   }
 }

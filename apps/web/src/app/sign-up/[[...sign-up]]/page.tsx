@@ -8,7 +8,7 @@ import Link from "next/link";
 type Step = "register" | "verify";
 
 export default function SignUpPage() {
-  const { isLoaded, signUp, setActive } = useSignUp();
+  const { signUp, fetchStatus } = useSignUp();
   const router = useRouter();
 
   const [step, setStep] = useState<Step>("register");
@@ -19,9 +19,11 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const isLoaded = fetchStatus !== "fetching";
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!signUp) return;
     if (password !== confirm) {
       setError("Las contraseñas no coinciden");
       return;
@@ -29,11 +31,13 @@ export default function SignUpPage() {
     setLoading(true);
     setError("");
     try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      const { error: pwError } = await signUp.password({ emailAddress: email, password });
+      if (pwError) throw pwError;
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) throw sendError;
       setStep("verify");
     } catch (err: any) {
-      const msg = err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Error al registrarse";
+      const msg = err?.longMessage ?? err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Error al registrarse";
       setError(msg);
     } finally {
       setLoading(false);
@@ -42,17 +46,17 @@ export default function SignUpPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!signUp) return;
     setLoading(true);
     setError("");
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/");
-      }
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
+      if (verifyError) throw verifyError;
+      const { error: finalizeError } = await signUp.finalize();
+      if (finalizeError) throw finalizeError;
+      router.push("/");
     } catch (err: any) {
-      const msg = err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Código incorrecto";
+      const msg = err?.longMessage ?? err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Código incorrecto";
       setError(msg);
     } finally {
       setLoading(false);

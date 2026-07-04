@@ -9,7 +9,12 @@ export class PdfService {
   async generateWorkOrderPdf(workshopId: string, workOrderId: string): Promise<Buffer> {
     const order = await this.prisma.workOrder.findFirst({
       where: { id: workOrderId, workshopId },
-      include: { client: true, vehicle: true, workshop: true },
+      include: {
+        client: true,
+        vehicle: true,
+        workshop: true,
+        items: { orderBy: { createdAt: "asc" } },
+      },
     });
     if (!order) throw new NotFoundException("Work order not found");
 
@@ -92,7 +97,6 @@ export class PdfService {
           .text(order.mechanicNotes, { lineGap: 4 });
       }
 
-      // Costs
       doc
         .moveDown(1.5)
         .moveTo(50, doc.y)
@@ -101,32 +105,116 @@ export class PdfService {
         .stroke()
         .moveDown(0.5);
 
-      const costY = doc.y;
-      if (order.estimatedCost != null) {
+      // Items table
+      if (order.items && order.items.length > 0) {
+        const COL = { type: 50, desc: 110, qty: 370, unit: 420, total: 490 };
+        const tableStartY = doc.y;
+
+        // Table header
         doc
-          .fontSize(10)
-          .fillColor("#666")
-          .text("Presupuesto estimado:", 350, costY)
-          .fillColor("#000")
+          .fontSize(8)
+          .fillColor("#888")
           .font("Helvetica-Bold")
-          .text(`$${Number(order.estimatedCost).toLocaleString("es-AR")}`, 490, costY);
-      }
-      if (order.finalCost != null) {
+          .text("TIPO", COL.type, tableStartY)
+          .text("DESCRIPCIÓN", COL.desc, tableStartY)
+          .text("CANT.", COL.qty, tableStartY, { width: 45, align: "right" })
+          .text("P. UNIT.", COL.unit, tableStartY, { width: 60, align: "right" })
+          .text("TOTAL", COL.total, tableStartY, { width: 55, align: "right" });
+
+        doc
+          .moveDown(0.4)
+          .moveTo(50, doc.y)
+          .lineTo(545, doc.y)
+          .strokeColor("#eee")
+          .stroke()
+          .moveDown(0.3);
+
+        let itemsTotal = 0;
+
+        for (const item of order.items) {
+          const rowY = doc.y;
+          const lineTotal = Number(item.quantity) * Number(item.unitPrice);
+          itemsTotal += lineTotal;
+
+          const typeLabel = item.type === "PART" ? "Repuesto" : "M.O.";
+
+          doc
+            .font("Helvetica")
+            .fontSize(9)
+            .fillColor("#555")
+            .text(typeLabel, COL.type, rowY, { width: 55 })
+            .fillColor("#000")
+            .text(item.description, COL.desc, rowY, { width: 255 })
+            .fillColor("#444")
+            .text(Number(item.quantity).toLocaleString("es-AR"), COL.qty, rowY, { width: 45, align: "right" })
+            .text(`$${Number(item.unitPrice).toLocaleString("es-AR")}`, COL.unit, rowY, { width: 60, align: "right" })
+            .font("Helvetica-Bold")
+            .text(`$${lineTotal.toLocaleString("es-AR")}`, COL.total, rowY, { width: 55, align: "right" });
+
+          doc.moveDown(0.6);
+        }
+
+        // Total row
+        doc
+          .moveDown(0.3)
+          .moveTo(350, doc.y)
+          .lineTo(545, doc.y)
+          .strokeColor("#ddd")
+          .stroke()
+          .moveDown(0.4);
+
+        const totalY = doc.y;
         doc
           .font("Helvetica")
           .fontSize(10)
           .fillColor("#666")
-          .text("Costo final:", 350, costY + 20)
-          .fillColor("#000")
+          .text("Total presupuesto:", 350, totalY, { width: 130 })
           .font("Helvetica-Bold")
-          .text(`$${Number(order.finalCost).toLocaleString("es-AR")}`, 490, costY + 20);
+          .fontSize(12)
+          .fillColor("#000")
+          .text(`$${itemsTotal.toLocaleString("es-AR")}`, COL.total, totalY, { width: 55, align: "right" });
+
+        if (order.finalCost != null) {
+          doc
+            .moveDown(1)
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor("#666")
+            .text("Costo final:", 350, doc.y, { width: 130 })
+            .font("Helvetica-Bold")
+            .fillColor("#1a7a3c")
+            .text(`$${Number(order.finalCost).toLocaleString("es-AR")}`, COL.total, doc.y, { width: 55, align: "right" });
+        }
+      } else {
+        // No items — show manual costs
+        const costY = doc.y;
+        if (order.estimatedCost != null) {
+          doc
+            .fontSize(10)
+            .fillColor("#666")
+            .text("Presupuesto estimado:", 350, costY)
+            .fillColor("#000")
+            .font("Helvetica-Bold")
+            .text(`$${Number(order.estimatedCost).toLocaleString("es-AR")}`, 490, costY);
+        }
+        if (order.finalCost != null) {
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor("#666")
+            .text("Costo final:", 350, costY + 20)
+            .fillColor("#000")
+            .font("Helvetica-Bold")
+            .text(`$${Number(order.finalCost).toLocaleString("es-AR")}`, 490, costY + 20);
+        }
       }
 
+      // Status label
       doc
         .font("Helvetica")
         .fontSize(9)
         .fillColor("#888")
-        .text(`Estado: ${order.status}`, 50, costY);
+        .text(`Estado: ${order.status}`, 50, doc.y);
 
       // Footer
       doc

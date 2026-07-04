@@ -26,3 +26,18 @@ export const UpdateWorkOrderSchema = CreateWorkOrderSchema.partial().extend({
 export type WorkOrderStatusType = z.infer<typeof WorkOrderStatus>;
 export type CreateWorkOrderDto = z.infer<typeof CreateWorkOrderSchema>;
 export type UpdateWorkOrderDto = z.infer<typeof UpdateWorkOrderSchema>;
+
+export const WorkOrderItemType = z.enum(["PART", "LABOR"]);
+
+export const CreateWorkOrderItemSchema = z.object({
+  type: WorkOrderItemType,
+  description: z.string().min(1).max(500),
+  quantity: z.number().positive(),
+  unitPrice: z.number().min(0),
+});
+
+export const UpdateWorkOrderItemSchema = CreateWorkOrderItemSchema.partial();
+
+export type WorkOrderItemTypeValue = z.infer<typeof WorkOrderItemType>;
+export type CreateWorkOrderItemDto = z.infer<typeof CreateWorkOrderItemSchema>;
+export type UpdateWorkOrderItemDto = z.infer<typeof UpdateWorkOrderItemSchema>;
