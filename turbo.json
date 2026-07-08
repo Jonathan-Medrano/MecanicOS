@@ -8,7 +8,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["DATABASE_URL", "DIRECT_URL", "CLERK_SECRET_KEY", "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "PORT", "WEB_URL", "NEXT_PUBLIC_API_URL"]
+      "env": ["DATABASE_URL", "DIRECT_URL", "CLERK_SECRET_KEY", "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "PORT", "WEB_URL", "NEXT_PUBLIC_API_URL", "NEXT_PUBLIC_SITE_URL", "GEMINI_API_KEY"]
     },
     "lint": {
       "dependsOn": ["^lint"]
