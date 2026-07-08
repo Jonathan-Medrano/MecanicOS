@@ -15,18 +15,19 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
-# Generate Prisma client types before TypeScript compilation
+# Generate Prisma client before TypeScript compilation
 RUN pnpm --filter api exec prisma generate
-# Build shared (install tsc globally in this stage only)
+# Build shared (tsc pinned to match workspace devDep)
 RUN npm install -g typescript@5.6.3 && cd packages/shared && tsc -p tsconfig.json
 # Compile the API
 RUN pnpm --filter api build
+# Flatten pnpm symlinks into a self-contained deployment folder
+RUN pnpm --filter api deploy --prod /standalone
 
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/node_modules ./node_modules
-COPY --from=builder /app/apps/api/prisma ./prisma
+# /standalone has resolved node_modules (no pnpm symlinks), dist/, and prisma/
+COPY --from=builder /standalone ./
 EXPOSE 3000
 CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/main.js"]
