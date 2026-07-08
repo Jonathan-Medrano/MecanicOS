@@ -9,6 +9,10 @@ export class DashboardService {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
     const [
       totalClients,
       totalVehicles,
@@ -17,6 +21,8 @@ export class DashboardService {
       inProgressOrders,
       todayOrders,
       recentOrders,
+      deliveredThisMonth,
+      doneThisMonth,
     ] = await this.prisma.$transaction([
       this.prisma.client.count({ where: { workshopId } }),
       this.prisma.vehicle.count({ where: { workshopId } }),
@@ -42,10 +48,41 @@ export class DashboardService {
           vehicle: { select: { brand: true, model: true, plate: true } },
         },
       }),
+      this.prisma.workOrder.findMany({
+        where: {
+          workshopId,
+          status: "DELIVERED",
+          completedAt: { gte: monthStart },
+        },
+        select: { finalCost: true, estimatedCost: true, items: { select: { quantity: true, unitPrice: true } } },
+      }),
+      this.prisma.workOrder.count({
+        where: {
+          workshopId,
+          status: { in: ["DONE", "DELIVERED"] },
+          completedAt: { gte: monthStart },
+        },
+      }),
     ]);
 
+    const monthRevenue = deliveredThisMonth.reduce((sum, o) => {
+      if (o.items.length > 0) {
+        return sum + o.items.reduce((s, i) => s + Number(i.quantity) * Number(i.unitPrice), 0);
+      }
+      return sum + Number(o.finalCost ?? o.estimatedCost ?? 0);
+    }, 0);
+
     return {
-      stats: { totalClients, totalVehicles, activeOrders, pendingOrders, inProgressOrders, todayOrders },
+      stats: {
+        totalClients,
+        totalVehicles,
+        activeOrders,
+        pendingOrders,
+        inProgressOrders,
+        todayOrders,
+        monthRevenue,
+        doneThisMonth,
+      },
       recentOrders,
     };
   }

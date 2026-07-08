@@ -35,6 +35,8 @@ type Overview = {
     pendingOrders: number;
     inProgressOrders: number;
     todayOrders: number;
+    monthRevenue: number;
+    doneThisMonth: number;
   };
   recentOrders: RecentOrder[];
 };
@@ -55,6 +57,14 @@ export default function DashboardPage() {
 
   const stats = data?.stats;
 
+  const monthRevenue = stats?.monthRevenue ?? 0;
+  const fmtMoney = (n: number) =>
+    n >= 1_000_000
+      ? `$${(n / 1_000_000).toFixed(1)}M`
+      : n >= 1_000
+      ? `$${(n / 1_000).toFixed(0)}k`
+      : `$${n.toLocaleString("es-AR")}`;
+
   const STAT_CARDS = [
     { label: "Activas",     value: stats?.activeOrders,     href: "/work-orders", color: "text-blue-600" },
     { label: "Hoy",         value: stats?.todayOrders,      href: "/work-orders?status=TODAY", color: "text-indigo-600" },
@@ -67,6 +77,22 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+
+      {/* Revenue banner */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Ingresos este mes</p>
+          <p className="text-3xl font-bold text-green-800 mt-0.5 tabular-nums">
+            {isLoading ? "—" : fmtMoney(monthRevenue)}
+          </p>
+          {!isLoading && (
+            <p className="text-xs text-green-600 mt-0.5">
+              {stats?.doneThisMonth ?? 0} {stats?.doneThisMonth === 1 ? "orden completada" : "órdenes completadas"}
+            </p>
+          )}
+        </div>
+        <div className="shrink-0 text-4xl opacity-20">💰</div>
+      </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
