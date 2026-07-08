@@ -1,24 +1,11 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
-
-interface CreateEmployeeDto {
-  name: string;
-  email: string;
-  phone?: string;
-  permissions: string[];
-}
-
-interface UpdateEmployeeDto {
-  name?: string;
-  phone?: string;
-  permissions?: string[];
-}
+import { CreateEmployeeDto, UpdateEmployeeDto } from "@mecanico/shared";
 
 @Injectable()
 export class EmployeesService {
@@ -28,10 +15,6 @@ export class EmployeesService {
   ) {}
 
   async create(workshopId: string, dto: CreateEmployeeDto) {
-    if (!dto.name?.trim()) throw new BadRequestException("Name is required");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dto.email ?? "")) throw new BadRequestException("Valid email is required");
-    if (!dto.permissions?.length) throw new BadRequestException("At least one permission is required");
-
     const existing = await this.prisma.workshopEmployee.findFirst({
       where: { workshopId, email: dto.email },
     });

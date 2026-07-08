@@ -11,6 +11,8 @@ import {
 import { EmployeesService } from "./employees.service";
 import { Permissions } from "../common/decorators/permissions.decorator";
 import { Permission } from "../common/permissions";
+import { ZodValidationPipe } from "../common/zod-validation.pipe";
+import { CreateEmployeeSchema, CreateEmployeeDto, UpdateEmployeeSchema, UpdateEmployeeDto } from "@mecanico/shared";
 
 @Controller("employees")
 export class EmployeesController {
@@ -18,8 +20,11 @@ export class EmployeesController {
 
   @Permissions(Permission.MANAGE_EMPLOYEES)
   @Post()
-  create(@Req() req: any, @Body() body: any) {
-    return this.employeesService.create(req.auth.workshopId, body);
+  create(
+    @Req() req: any,
+    @Body(new ZodValidationPipe(CreateEmployeeSchema)) dto: CreateEmployeeDto,
+  ) {
+    return this.employeesService.create(req.auth.workshopId, dto);
   }
 
   @Permissions(Permission.MANAGE_EMPLOYEES)
@@ -30,8 +35,12 @@ export class EmployeesController {
 
   @Permissions(Permission.MANAGE_EMPLOYEES)
   @Patch(":id")
-  update(@Req() req: any, @Param("id") id: string, @Body() body: any) {
-    return this.employeesService.update(req.auth.workshopId, id, body);
+  update(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(UpdateEmployeeSchema)) dto: UpdateEmployeeDto,
+  ) {
+    return this.employeesService.update(req.auth.workshopId, id, dto);
   }
 
   @Permissions(Permission.MANAGE_EMPLOYEES)

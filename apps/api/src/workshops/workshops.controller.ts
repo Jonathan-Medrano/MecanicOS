@@ -1,6 +1,8 @@
 import { Body, Controller, ForbiddenException, Get, Patch, Req } from "@nestjs/common";
 import { WorkshopsService } from "./workshops.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { ZodValidationPipe } from "../common/zod-validation.pipe";
+import { UpdateWorkshopSettingsSchema, UpdateWorkshopSettingsDto } from "@mecanico/shared";
 
 @Controller()
 export class WorkshopsController {
@@ -22,7 +24,7 @@ export class WorkshopsController {
   @Patch("workshop/settings")
   async updateSettings(
     @Req() req: any,
-    @Body() dto: { name?: string; phone?: string; address?: string; botAutoReply?: boolean; botAutoReplyMsg?: string },
+    @Body(new ZodValidationPipe(UpdateWorkshopSettingsSchema)) dto: UpdateWorkshopSettingsDto,
   ) {
     const { workshopId, isOwner } = req.auth;
     if (!isOwner) throw new ForbiddenException("Only the workshop owner can update settings");
