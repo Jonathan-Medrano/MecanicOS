@@ -2,11 +2,14 @@ import { Body, Controller, Post, Req } from "@nestjs/common";
 import { AssistantService } from "./assistant.service";
 import { AskAssistantSchema } from "@mecanico/shared";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
+import { Permissions } from "../common/decorators/permissions.decorator";
+import { Permission } from "../common/permissions";
 
 @Controller("assistant")
 export class AssistantController {
   constructor(private readonly assistantService: AssistantService) {}
 
+  @Permissions(Permission.VIEW_ORDERS)
   @Post("ask")
   ask(
     @Req() req: any,

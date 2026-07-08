@@ -1,11 +1,14 @@
 import { Controller, Get, Param, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { PdfService } from "./pdf.service";
+import { Permissions } from "../common/decorators/permissions.decorator";
+import { Permission } from "../common/permissions";
 
 @Controller("pdf")
 export class PdfController {
   constructor(private readonly pdfService: PdfService) {}
 
+  @Permissions(Permission.VIEW_ORDERS)
   @Get("work-orders/:id")
   async workOrderPdf(
     @Req() req: any,
