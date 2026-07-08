@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Send, Bot, User, BookOpen, Loader2, AlertCircle } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 type Message = {
   id: string;
@@ -11,6 +13,28 @@ type Message = {
   usedGuides?: { id: string; title: string; vehicle?: string }[];
   error?: boolean;
 };
+
+function AssistantMarkdown({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+        ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        h1: ({ children }) => <h1 className="text-base font-bold mb-1 mt-2">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-sm font-bold mb-1 mt-2">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-1.5">{children}</h3>,
+        code: ({ children }) => <code className="bg-gray-100 text-gray-800 rounded px-1 py-0.5 text-xs font-mono">{children}</code>,
+        pre: ({ children }) => <pre className="bg-gray-100 rounded p-2 my-2 text-xs font-mono overflow-x-auto">{children}</pre>,
+        blockquote: ({ children }) => <blockquote className="border-l-2 border-gray-300 pl-3 text-gray-600 my-2">{children}</blockquote>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
 
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
@@ -31,7 +55,11 @@ function MessageBubble({ msg }: { msg: Message }) {
           }`}
         >
           {msg.error && <AlertCircle size={13} className="inline mr-1.5 mb-0.5" />}
-          <span className="whitespace-pre-wrap">{msg.content}</span>
+          {isUser || msg.error ? (
+            <span className="whitespace-pre-wrap">{msg.content}</span>
+          ) : (
+            <AssistantMarkdown content={msg.content} />
+          )}
         </div>
         {msg.usedGuides && msg.usedGuides.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1">
@@ -60,13 +88,19 @@ function TypingIndicator() {
   );
 }
 
-export default function AssistantPage() {
+function AssistantContent() {
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [vehicle, setVehicle] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const v = searchParams.get("vehicle");
+    if (v) setVehicle(v);
+  }, [searchParams]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -196,5 +230,13 @@ export default function AssistantPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AssistantPage() {
+  return (
+    <Suspense>
+      <AssistantContent />
+    </Suspense>
   );
 }
