@@ -6,7 +6,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 export default function SignInPage() {
-  const { signIn, fetchStatus } = useSignIn();
+  const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -14,21 +14,24 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isLoaded = fetchStatus !== "fetching";
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!signIn) return;
+    if (!signIn || !setActive) return;
     setLoading(true);
     setError("");
     try {
-      const { error: pwError } = await signIn.password({ emailAddress: email, password });
-      if (pwError) throw pwError;
-      const { error: finalizeError } = await signIn.finalize();
-      if (finalizeError) throw finalizeError;
-      router.push("/dashboard");
+      const result = await signIn.create({ identifier: email, password });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push("/dashboard");
+      } else {
+        setError("Error inesperado al iniciar sesión. Intentá de nuevo.");
+      }
     } catch (err: any) {
-      const msg = err?.longMessage ?? err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Error al iniciar sesión";
+      const msg =
+        err?.errors?.[0]?.longMessage ??
+        err?.errors?.[0]?.message ??
+        "Error al iniciar sesión";
       setError(msg);
     } finally {
       setLoading(false);
