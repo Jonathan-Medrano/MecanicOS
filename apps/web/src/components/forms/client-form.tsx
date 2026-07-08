@@ -38,10 +38,12 @@ export function ClientForm({ onSuccess, client }: ClientFormProps) {
   });
 
   const mutation = useMutation({
-    mutationFn: (data: FormValues) =>
-      isEdit
-        ? api.patch(`/clients/${client.id}`, data)
-        : api.post("/clients", data),
+    mutationFn: (data: FormValues) => {
+      const payload = { ...data, email: data.email || undefined };
+      return isEdit
+        ? api.patch(`/clients/${client.id}`, payload)
+        : api.post("/clients", payload);
+    },
     onSuccess: () => {
       toast.success(isEdit ? "Cliente actualizado" : "Cliente creado");
       qc.invalidateQueries({ queryKey: ["clients"] });

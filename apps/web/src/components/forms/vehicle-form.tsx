@@ -69,8 +69,15 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
   });
 
   const mutation = useMutation({
-    mutationFn: (data: FormValues) =>
-      isEdit ? api.patch(`/vehicles/${vehicle.id}`, data) : api.post("/vehicles", data),
+    mutationFn: (data: FormValues) => {
+      const payload = {
+        ...data,
+        color: data.color || undefined,
+        vin: data.vin || undefined,
+        notes: data.notes || undefined,
+      };
+      return isEdit ? api.patch(`/vehicles/${vehicle.id}`, payload) : api.post("/vehicles", payload);
+    },
     onSuccess: () => {
       toast.success(isEdit ? "Vehículo actualizado" : "Vehículo creado");
       qc.invalidateQueries({ queryKey: ["vehicles"] });

@@ -61,6 +61,12 @@ export default function WhatsAppPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (messages) {
+      qc.invalidateQueries({ queryKey: ["wa-conversations-badge"] });
+    }
+  }, [messages, qc]);
+
   const sendMutation = useMutation({
     mutationFn: () =>
       api.post(`/whatsapp/conversations/${selectedPhone}/send`, { text }),

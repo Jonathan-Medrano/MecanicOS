@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePermission } from "@/hooks/use-me";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Guide = {
   id: string;
@@ -110,9 +111,10 @@ function GuideForm({ onSuccess }: { onSuccess: () => void }) {
 
 function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const qc = useQueryClient();
 
-  const { data: detail } = useQuery<GuideDetail>({
+  const { data: detail, isError: detailError } = useQuery<GuideDetail>({
     queryKey: ["guide", guide.id],
     queryFn: () => api.get(`/guides/${guide.id}`).then((r) => r.data),
     enabled: expanded,
@@ -150,7 +152,7 @@ function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
         <div className="flex items-center gap-2 shrink-0">
           {canEdit && (
             <button
-              onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(); }}
+              onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
               className="text-gray-300 hover:text-red-500 p-1 rounded transition-colors"
             >
               <Trash2 size={14} />
@@ -161,7 +163,9 @@ function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
       </div>
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-100">
-          {detail ? (
+          {detailError ? (
+            <p className="mt-3 text-xs text-red-400">Error al cargar el contenido.</p>
+          ) : detail ? (
             <pre className="mt-3 text-xs text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 rounded-lg p-3 max-h-64 overflow-y-auto">
               {detail.content}
             </pre>
@@ -170,6 +174,14 @@ function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => deleteMutation.mutate(undefined, { onSettled: () => setConfirmOpen(false) })}
+        loading={deleteMutation.isPending}
+        title={`¿Eliminar "${guide.title}"?`}
+        description="El asistente de IA dejará de usar esta guía como contexto."
+      />
     </div>
   );
 }

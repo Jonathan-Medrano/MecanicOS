@@ -81,7 +81,7 @@ export class VehiclesService {
   async remove(workshopId: string, id: string) {
     await this.findOne(workshopId, id);
     const totalOrders = await this.prisma.workOrder.count({
-      where: { vehicleId: id },
+      where: { vehicleId: id, workshopId },
     });
     if (totalOrders > 0) {
       throw new ConflictException(
