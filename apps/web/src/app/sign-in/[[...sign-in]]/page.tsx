@@ -26,7 +26,7 @@ export default function SignInPage() {
       if (pwError) throw pwError;
       const { error: finalizeError } = await signIn.finalize();
       if (finalizeError) throw finalizeError;
-      router.push("/");
+      router.push("/work-orders");
     } catch (err: any) {
       const msg = err?.longMessage ?? err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Error al iniciar sesión";
       setError(msg);
