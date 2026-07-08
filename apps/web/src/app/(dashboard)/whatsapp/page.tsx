@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send, UserCheck, ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { relativeTime } from "@/lib/relative-time";
+import { toast } from "sonner";
+import { usePermission } from "@/hooks/use-me";
 
 type Conversation = {
   phone: string;
@@ -26,6 +28,8 @@ type Message = {
 type Client = { id: string; name: string };
 
 export default function WhatsAppPage() {
+  const canView = usePermission("VIEW_WHATSAPP");
+  const canSend = usePermission("SEND_WHATSAPP");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [classifyOpen, setClassifyOpen] = useState(false);
@@ -37,6 +41,7 @@ export default function WhatsAppPage() {
     queryKey: ["wa-conversations"],
     queryFn: () => api.get("/whatsapp/conversations").then((r) => r.data),
     refetchInterval: 10_000,
+    enabled: canView,
   });
 
   const { data: messages } = useQuery<Message[]>({
@@ -64,6 +69,7 @@ export default function WhatsAppPage() {
       qc.invalidateQueries({ queryKey: ["wa-messages", selectedPhone] });
       qc.invalidateQueries({ queryKey: ["wa-conversations"] });
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al enviar el mensaje"),
   });
 
   const classifyMutation = useMutation({
@@ -77,7 +83,16 @@ export default function WhatsAppPage() {
       qc.invalidateQueries({ queryKey: ["wa-conversations"] });
       qc.invalidateQueries({ queryKey: ["wa-messages", selectedPhone] });
     },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al asociar el cliente"),
   });
+
+  if (!canView) {
+    return (
+      <div className="text-center py-20 text-gray-400 text-sm">
+        No tenés permisos para ver las conversaciones de WhatsApp.
+      </div>
+    );
+  }
 
   const selected = conversations?.find((c) => c.phone === selectedPhone);
 
@@ -167,7 +182,7 @@ export default function WhatsAppPage() {
               </p>
               <p className="text-xs text-gray-400">{selectedPhone}</p>
             </div>
-            {!selected?.client && (
+            {!selected?.client && canSend && (
               <button
                 onClick={() => setClassifyOpen((v) => !v)}
                 className="flex items-center gap-1.5 text-xs bg-orange-500 text-white px-3 py-2 rounded-md hover:bg-orange-600 shrink-0"
@@ -238,30 +253,36 @@ export default function WhatsAppPage() {
           </div>
 
           {/* Send */}
-          <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-2 shrink-0">
-            <input
-              type="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && text.trim() && selectedPhone) {
-                  e.preventDefault();
-                  sendMutation.mutate();
-                }
-              }}
-              enterKeyHint="send"
-              inputMode="text"
-              placeholder="Escribí un mensaje..."
-              className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-            />
-            <button
-              onClick={() => sendMutation.mutate()}
-              disabled={!text.trim() || sendMutation.isPending}
-              className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-40 shrink-0"
-            >
-              <Send size={16} />
-            </button>
-          </div>
+          {canSend ? (
+            <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-2 shrink-0">
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && text.trim() && selectedPhone) {
+                    e.preventDefault();
+                    sendMutation.mutate();
+                  }
+                }}
+                enterKeyHint="send"
+                inputMode="text"
+                placeholder="Escribí un mensaje..."
+                className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+              />
+              <button
+                onClick={() => sendMutation.mutate()}
+                disabled={!text.trim() || sendMutation.isPending}
+                className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-40 shrink-0"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
+              <p className="text-xs text-gray-400 text-center">Solo lectura — sin permiso para enviar mensajes.</p>
+            </div>
+          )}
         </>
       )}
     </div>
