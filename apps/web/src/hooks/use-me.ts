@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 export type MeData = {
   isOwner: boolean;
   permissions: string[];
-  workshop: { id: string; name: string; phone?: string; address?: string } | null;
+  workshop: { id: string; name: string; phone?: string; address?: string; botAutoReply?: boolean; botAutoReplyMsg?: string } | null;
 };
 
 export function useMe() {

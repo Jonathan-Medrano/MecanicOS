@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft, FileDown, CalendarClock, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { ArrowLeft, FileDown, CalendarClock, Plus, Trash2, Pencil, Check, X, Bot, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
@@ -289,6 +289,12 @@ export default function WorkOrderDetailPage() {
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar item"),
   });
 
+  const notifyMutation = useMutation({
+    mutationFn: () => api.post(`/work-orders/${id}/notify`),
+    onSuccess: () => toast.success("Mensaje enviado por WhatsApp"),
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al enviar WhatsApp"),
+  });
+
   if (isLoading) return <p className="text-gray-400 text-sm">Cargando...</p>;
   if (!order) return <p className="text-sm text-red-500">Orden no encontrada.</p>;
 
@@ -333,6 +339,21 @@ export default function WorkOrderDetailPage() {
           >
             <FileDown size={13} /> PDF
           </a>
+          <Link
+            href={`/assistant?vehicle=${encodeURIComponent(`${order.vehicle.brand} ${order.vehicle.model}${order.vehicle.year ? ` ${order.vehicle.year}` : ""}`)}`}
+            className="flex items-center gap-1 text-xs border border-blue-200 text-blue-600 px-3 py-2 rounded-md hover:bg-blue-50"
+            title="Consultar asistente IA"
+          >
+            <Bot size={13} /> IA
+          </Link>
+          <button
+            onClick={() => notifyMutation.mutate()}
+            disabled={notifyMutation.isPending || !order.client.phone}
+            title={order.client.phone ? "Enviar actualización por WhatsApp" : "Sin número de teléfono"}
+            className="flex items-center gap-1 text-xs border border-green-200 text-green-600 px-3 py-2 rounded-md hover:bg-green-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <MessageCircle size={13} /> WA
+          </button>
           <select
             value={order.status}
             onChange={(e) => statusMutation.mutate(e.target.value)}
