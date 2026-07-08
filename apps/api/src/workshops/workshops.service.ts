@@ -5,17 +5,11 @@ import { PrismaService } from "../prisma/prisma.service";
 export class WorkshopsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findOrCreate(clerkUserId: string) {
-    const existing = await this.prisma.workshop.findUnique({
+  findOrCreate(clerkUserId: string) {
+    return this.prisma.workshop.upsert({
       where: { clerkOrgId: clerkUserId },
-    });
-    if (existing) return existing;
-
-    return this.prisma.workshop.create({
-      data: {
-        clerkOrgId: clerkUserId,
-        name: "Mi Taller",
-      },
+      update: {},
+      create: { clerkOrgId: clerkUserId, name: "Mi Taller" },
     });
   }
 
