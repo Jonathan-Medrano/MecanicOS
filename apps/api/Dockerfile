@@ -17,8 +17,8 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
 # Generate Prisma client types before TypeScript compilation
 RUN pnpm --filter api exec prisma generate
-# Build shared using tsc from the workspace root node_modules
-RUN cd packages/shared && /app/node_modules/.bin/tsc -p tsconfig.json
+# Build shared (install tsc globally in this stage only)
+RUN npm install -g typescript && cd packages/shared && tsc -p tsconfig.json
 # Compile the API
 RUN pnpm --filter api build
 
