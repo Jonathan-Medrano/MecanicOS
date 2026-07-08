@@ -331,8 +331,8 @@ Ejemplos:
 
     const { orderId, clientId, clientPhone, clientName, vehicleLabel, newStatus } = context;
 
-    await this.prisma.workOrder.update({
-      where: { id: orderId },
+    await this.prisma.workOrder.updateMany({
+      where: { id: orderId, workshopId },
       data: {
         status: newStatus as any,
         ...(newStatus === "IN_PROGRESS" ? { startedAt: new Date() } : {}),
@@ -407,7 +407,7 @@ Ejemplos:
       return `⚠️ Ese número no parece válido. Pasámelo con código de área sin espacios, ej: *1112345678*`;
     }
 
-    await this.prisma.client.update({ where: { id: clientId }, data: { phone: clean } });
+    await this.prisma.client.updateMany({ where: { id: clientId, workshopId }, data: { phone: clean } });
 
     const msg = [
       `⚙️ *Actualización de tu vehículo*`,
@@ -560,8 +560,8 @@ Ejemplos:
       return "⚠️ Sesión perdida. Escribí *menu* para volver.";
     }
 
-    await this.prisma.workOrder.update({
-      where: { id: orderId },
+    await this.prisma.workOrder.updateMany({
+      where: { id: orderId, workshopId },
       data: {
         status: newStatus as any,
         ...(newStatus === "IN_PROGRESS" ? { startedAt: new Date() } : {}),
@@ -633,8 +633,8 @@ Ejemplos:
       await this.updateSession(workshopId, phone, "IDLE", null);
       return "⚠️ Sesión perdida. Escribí *menu* para volver.";
     }
-    await this.prisma.workOrder.update({
-      where: { id: context.orderId },
+    await this.prisma.workOrder.updateMany({
+      where: { id: context.orderId, workshopId },
       data: { mechanicNotes: text.trim() },
     });
     await this.updateSession(workshopId, phone, "IDLE", null);
