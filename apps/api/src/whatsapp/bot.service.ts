@@ -462,8 +462,11 @@ Ejemplos:
   // ─── Orders: today view ───────────────────────────────────────────────────
 
   private async listTodayOrders(workshopId: string): Promise<string> {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const nowAR = new Date(Date.now() - AR_OFFSET_MS);
+    const startAR = new Date(nowAR);
+    startAR.setUTCHours(0, 0, 0, 0);
+    const start = new Date(startAR.getTime() + AR_OFFSET_MS);
     const orders = await this.prisma.workOrder.findMany({
       where: {
         workshopId,
