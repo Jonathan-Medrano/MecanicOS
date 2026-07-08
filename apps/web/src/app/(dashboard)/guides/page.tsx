@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
+import { usePermission } from "@/hooks/use-me";
 
 type Guide = {
   id: string;
@@ -107,7 +108,7 @@ function GuideForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function GuideRow({ guide }: { guide: Guide }) {
+function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const qc = useQueryClient();
 
@@ -147,12 +148,14 @@ function GuideRow({ guide }: { guide: Guide }) {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(); }}
-            className="text-gray-300 hover:text-red-500 p-1 rounded transition-colors"
-          >
-            <Trash2 size={14} />
-          </button>
+          {canEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(); }}
+              className="text-gray-300 hover:text-red-500 p-1 rounded transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
           {expanded ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
         </div>
       </div>
@@ -172,6 +175,7 @@ function GuideRow({ guide }: { guide: Guide }) {
 }
 
 export default function GuidesPage() {
+  const canEdit = usePermission("EDIT_ORDERS");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
@@ -190,7 +194,7 @@ export default function GuidesPage() {
           <h1 className="text-xl font-semibold text-gray-900">Guías técnicas</h1>
           <p className="text-xs text-gray-400 mt-0.5">El asistente de IA las usa para responder preguntas técnicas</p>
         </div>
-        <GuideForm onSuccess={() => {}} />
+        {canEdit && <GuideForm onSuccess={() => {}} />}
       </div>
 
       <div className="relative">
@@ -218,7 +222,7 @@ export default function GuidesPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {guides.map((g) => <GuideRow key={g.id} guide={g} />)}
+          {guides.map((g) => <GuideRow key={g.id} guide={g} canEdit={canEdit} />)}
         </div>
       )}
     </div>

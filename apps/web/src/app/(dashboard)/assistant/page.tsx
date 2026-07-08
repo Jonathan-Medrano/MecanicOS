@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Send, Bot, User, BookOpen, Loader2, AlertCircle } from "lucide-react";
+import { usePermission } from "@/hooks/use-me";
 import ReactMarkdown from "react-markdown";
 
 type Message = {
@@ -89,6 +90,7 @@ function TypingIndicator() {
 }
 
 function AssistantContent() {
+  const canView = usePermission("VIEW_ORDERS");
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -151,6 +153,16 @@ function AssistantContent() {
   }
 
   const isEmpty = messages.length === 0;
+
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center text-gray-400">
+        <Bot size={40} className="opacity-30 mb-4" />
+        <p className="text-sm font-medium text-gray-500">Sin acceso al asistente técnico</p>
+        <p className="text-xs mt-1">Necesitás permiso de visualización de órdenes</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl">
