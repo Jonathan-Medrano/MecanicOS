@@ -37,6 +37,10 @@ export default function SettingsPage() {
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al guardar"),
   });
 
+  if (isLoading) {
+    return <p className="text-sm text-gray-400 py-8">Cargando...</p>;
+  }
+
   if (!me?.isOwner) {
     return (
       <div className="text-center py-20 text-gray-400 text-sm">
@@ -54,58 +58,54 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-gray-400">Cargando...</p>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Nombre del taller *
-            </label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="Taller Mecánico San Martín"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Teléfono / WhatsApp del taller
-            </label>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="+5491112345678"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Se usa como número de contacto en los presupuestos PDF.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Dirección</label>
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="Av. Corrientes 1234, Buenos Aires"
-            />
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={() => mutation.mutate({ name, phone, address, botAutoReply, botAutoReplyMsg })}
-              disabled={mutation.isPending || !name.trim()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-            >
-              {mutation.isPending ? "Guardando..." : "Guardar cambios"}
-            </button>
-          </div>
+      <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-5">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Nombre del taller *
+          </label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            placeholder="Taller Mecánico San Martín"
+          />
         </div>
-      )}
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Teléfono / WhatsApp del taller
+          </label>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            placeholder="+5491112345678"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Se usa como número de contacto en los presupuestos PDF.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Dirección</label>
+          <input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            placeholder="Av. Corrientes 1234, Buenos Aires"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            onClick={() => mutation.mutate({ name, phone, address, botAutoReply, botAutoReplyMsg })}
+            disabled={mutation.isPending || !name.trim()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+          >
+            {mutation.isPending ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </div>
+      </div>
 
       {/* Bot WhatsApp settings */}
       <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6 space-y-5">

@@ -97,7 +97,7 @@ export class ClerkAuthGuard implements CanActivate {
         }
       }
     } catch {
-      // Clerk API call failed — fall through to create new workshop
+      // Clerk API call failed — treat as new user (can't verify pending employee)
     }
 
     // 4. New user — create workshop (becomes owner)
