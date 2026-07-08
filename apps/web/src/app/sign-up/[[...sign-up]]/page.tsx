@@ -24,7 +24,7 @@ export default function SignUpPage() {
   async function finalize() {
     const { error: finalizeError } = await signUp!.finalize();
     if (finalizeError) throw finalizeError;
-    router.push("/dashboard");
+    window.location.href = "/dashboard";
   }
 
   async function handleRegister(e: React.FormEvent) {

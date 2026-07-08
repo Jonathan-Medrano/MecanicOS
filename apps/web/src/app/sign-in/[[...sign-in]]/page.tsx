@@ -26,7 +26,7 @@ export default function SignInPage() {
       if (pwError) throw pwError;
       const { error: finalizeError } = await signIn.finalize();
       if (finalizeError) throw finalizeError;
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err: any) {
       const msg =
         err?.longMessage ??
