@@ -154,6 +154,7 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
   }
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = createForm;
+  const { onChange: onClientChange, ...clientRegist } = register("clientId");
 
   const onSubmit = (d: CreateValues) => {
     const payload: any = { ...d };
@@ -171,9 +172,9 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
       <Field label="Cliente" error={errors.clientId?.message} required>
         <select
           className={inputClass}
-          {...register("clientId")}
+          {...clientRegist}
           onChange={(e) => {
-            setValue("clientId", e.target.value);
+            onClientChange(e);
             setValue("vehicleId", "");
             setSelectedClientId(e.target.value);
           }}

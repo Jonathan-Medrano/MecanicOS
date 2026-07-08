@@ -17,6 +17,9 @@ export class PdfService {
       },
     });
     if (!order) throw new NotFoundException("Work order not found");
+    if (!order.client || !order.vehicle) {
+      throw new NotFoundException("Work order has missing client or vehicle data");
+    }
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50, size: "A4" });
@@ -175,15 +178,16 @@ export class PdfService {
           .text(`$${itemsTotal.toLocaleString("es-AR")}`, COL.total, totalY, { width: 55, align: "right" });
 
         if (order.finalCost != null) {
+          doc.moveDown(1);
+          const finalCostY = doc.y;
           doc
-            .moveDown(1)
             .font("Helvetica")
             .fontSize(10)
             .fillColor("#666")
-            .text("Costo final:", 350, doc.y, { width: 130 })
+            .text("Costo final:", 350, finalCostY, { width: 130 })
             .font("Helvetica-Bold")
             .fillColor("#1a7a3c")
-            .text(`$${Number(order.finalCost).toLocaleString("es-AR")}`, COL.total, doc.y, { width: 55, align: "right" });
+            .text(`$${Number(order.finalCost).toLocaleString("es-AR")}`, COL.total, finalCostY, { width: 55, align: "right" });
         }
       } else {
         // No items — show manual costs

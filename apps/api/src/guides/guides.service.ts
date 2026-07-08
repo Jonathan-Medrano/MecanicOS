@@ -46,6 +46,7 @@ export class GuidesService {
   }
 
   findRelevant(workshopId: string, keywords: string[]) {
+    if (keywords.length === 0) return Promise.resolve([]);
     return this.prisma.technicalGuide.findMany({
       where: {
         workshopId,

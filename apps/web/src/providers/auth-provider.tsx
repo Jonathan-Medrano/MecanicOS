@@ -13,7 +13,8 @@ export function AuthTokenSync({ children }: { children: React.ReactNode }) {
     } else {
       registerTokenGetter(async () => null);
     }
-  }, [isSignedIn, getToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]);
 
   return <>{children}</>;
 }

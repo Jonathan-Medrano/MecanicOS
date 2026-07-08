@@ -11,7 +11,7 @@ export const CreateVehicleSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
-export const UpdateVehicleSchema = CreateVehicleSchema.partial();
+export const UpdateVehicleSchema = CreateVehicleSchema.omit({ clientId: true }).partial();
 
 export type CreateVehicleDto = z.infer<typeof CreateVehicleSchema>;
 export type UpdateVehicleDto = z.infer<typeof UpdateVehicleSchema>;
