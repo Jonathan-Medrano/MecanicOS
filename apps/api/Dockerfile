@@ -8,7 +8,7 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 # apps/web is excluded from context; provide a stub so pnpm workspace recognizes it
 RUN mkdir -p apps/web && echo '{"name":"web","version":"0.0.0","private":true}' > apps/web/package.json
-RUN pnpm install --frozen-lockfile --ignore-scripts --filter api...
+RUN pnpm install --no-frozen-lockfile --ignore-scripts --filter api...
 
 FROM base AS builder
 WORKDIR /app
