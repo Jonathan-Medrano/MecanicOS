@@ -23,10 +23,16 @@ export class AssistantService {
     const keywords = this.extractKeywords(dto.question, dto.vehicle);
     const relevantGuides = await this.guides.findRelevant(workshopId, keywords);
 
+    const MAX_GUIDE_CHARS = 4_000;
     const guideContext =
       relevantGuides.length > 0
         ? relevantGuides
-            .map((g) => `### ${g.title}${g.vehicle ? ` (${g.vehicle})` : ""}\n${g.content}`)
+            .map((g) => {
+              const body = g.content.length > MAX_GUIDE_CHARS
+                ? g.content.slice(0, MAX_GUIDE_CHARS) + "\n[…contenido truncado]"
+                : g.content;
+              return `### ${g.title}${g.vehicle ? ` (${g.vehicle})` : ""}\n${body}`;
+            })
             .join("\n\n---\n\n")
         : null;
 
