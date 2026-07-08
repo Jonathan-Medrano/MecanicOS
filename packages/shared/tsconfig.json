@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node16",
+    "moduleResolution": "node",
     "target": "ES2021",
     "declaration": true,
     "outDir": "./dist",
