@@ -110,6 +110,7 @@ export function WorkOrderForm({ onSuccess, workOrder, defaultClientId, defaultVe
       }
       if (!payload.estimatedCost) delete payload.estimatedCost;
       if (!payload.finalCost) delete payload.finalCost;
+      if (!payload.mechanicNotes) delete payload.mechanicNotes;
       mutation.mutate(payload);
     };
     return (
