@@ -11,6 +11,11 @@
 # Dependencies (pnpm creates Windows junctions — must exclude)
 **/node_modules
 
+# Web app source (not needed for API container; package.json IS needed for workspace)
+apps/web/src
+apps/web/public
+apps/web/.vercel
+
 # Environment secrets
 **/.env
 **/.env.local
@@ -20,17 +25,12 @@
 # Tooling
 .claude
 .agents
-**/.vercel
 **/skills-lock.json
-
-# Web app (not needed for API container)
-apps/web
 
 # Infra configs (not needed in container)
 fly.toml
 railway.json
 
 # Docs and misc
-MASTER_PLAN*
 **/README.md
 **/*.log
