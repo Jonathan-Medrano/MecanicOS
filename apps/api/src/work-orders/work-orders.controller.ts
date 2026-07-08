@@ -94,4 +94,9 @@ export class WorkOrdersController {
   ) {
     return this.workOrdersService.removeItem(req.auth.workshopId, id, itemId);
   }
+
+  @Post(":id/notify")
+  notifyClient(@Req() req: any, @Param("id") id: string) {
+    return this.workOrdersService.notifyClient(req.auth.workshopId, id);
+  }
 }

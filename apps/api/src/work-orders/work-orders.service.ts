@@ -145,4 +145,42 @@ export class WorkOrdersService {
     await this.findOne(workshopId, id);
     return this.prisma.workOrder.delete({ where: { id } });
   }
+
+  async notifyClient(workshopId: string, id: string) {
+    const order = await this.findOne(workshopId, id);
+
+    const STATUS_LABELS: Record<string, string> = {
+      PENDING: "Pendiente",
+      IN_PROGRESS: "En progreso",
+      WAITING_PARTS: "Esperando piezas",
+      DONE: "Listo para retirar ✅",
+      DELIVERED: "Entregado",
+      CANCELLED: "Cancelado",
+    };
+
+    const itemsTotal = (order.items ?? []).reduce(
+      (s: number, i: any) => s + Number(i.quantity) * Number(i.unitPrice),
+      0,
+    );
+    const cost = order.items?.length > 0
+      ? itemsTotal
+      : Number(order.finalCost ?? order.estimatedCost ?? 0);
+
+    const lines = [
+      `⚙️ *Actualización de tu vehículo*`,
+      `*${order.vehicle.brand} ${order.vehicle.model}* (${order.vehicle.plate})`,
+      ``,
+      `*Trabajo:* ${order.description}`,
+      `*Estado:* ${STATUS_LABELS[order.status] ?? order.status}`,
+    ];
+    if (cost > 0) {
+      lines.push(`*Costo:* $${cost.toLocaleString("es-AR")}`);
+    }
+
+    if (order.client?.phone) {
+      await this.notifications.sendWhatsApp(order.client.phone, lines.join("\n"));
+    }
+
+    return { sent: !!order.client?.phone };
+  }
 }
