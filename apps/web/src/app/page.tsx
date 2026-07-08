@@ -58,7 +58,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             {isSignedIn ? (
               <Link
-                href="/work-orders"
+                href="/dashboard"
                 className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Ir al taller <ArrowRight size={14} />
@@ -100,7 +100,7 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           {isSignedIn ? (
             <Link
-              href="/work-orders"
+              href="/dashboard"
               className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors text-base shadow-sm"
             >
               Ir al taller <ArrowRight size={16} />
