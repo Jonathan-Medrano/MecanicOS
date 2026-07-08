@@ -6,12 +6,18 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview(workshopId: string) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // Argentina is UTC-3. Compute day/month boundaries in local time then convert to UTC.
+    const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const nowAR = new Date(Date.now() - AR_OFFSET_MS);
 
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
+    const todayStartAR = new Date(nowAR);
+    todayStartAR.setUTCHours(0, 0, 0, 0);
+    const todayStart = new Date(todayStartAR.getTime() + AR_OFFSET_MS);
+
+    const monthStartAR = new Date(nowAR);
+    monthStartAR.setUTCDate(1);
+    monthStartAR.setUTCHours(0, 0, 0, 0);
+    const monthStart = new Date(monthStartAR.getTime() + AR_OFFSET_MS);
 
     const [
       totalClients,

@@ -29,7 +29,7 @@ export class EmployeesService {
 
   async create(workshopId: string, dto: CreateEmployeeDto) {
     if (!dto.name?.trim()) throw new BadRequestException("Name is required");
-    if (!dto.email?.includes("@")) throw new BadRequestException("Valid email is required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dto.email ?? "")) throw new BadRequestException("Valid email is required");
     if (!dto.permissions?.length) throw new BadRequestException("At least one permission is required");
 
     const existing = await this.prisma.workshopEmployee.findFirst({
@@ -85,6 +85,6 @@ export class EmployeesService {
 
   async remove(workshopId: string, id: string) {
     await this.findOne(workshopId, id);
-    return this.prisma.workshopEmployee.delete({ where: { id } });
+    return this.prisma.workshopEmployee.deleteMany({ where: { id, workshopId } });
   }
 }

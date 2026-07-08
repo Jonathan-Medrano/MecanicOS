@@ -42,11 +42,16 @@ export class WorkOrdersService {
     const search = filters?.search?.trim();
     let scheduledAtFilter: any = undefined;
     if (filters?.scheduledDate === "today") {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-      scheduledAtFilter = { scheduledAt: { gte: start, lte: end } };
+      const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
+      const nowAR = new Date(Date.now() - AR_OFFSET_MS);
+      const startAR = new Date(nowAR); startAR.setUTCHours(0, 0, 0, 0);
+      const endAR = new Date(nowAR); endAR.setUTCHours(23, 59, 59, 999);
+      scheduledAtFilter = {
+        scheduledAt: {
+          gte: new Date(startAR.getTime() + AR_OFFSET_MS),
+          lte: new Date(endAR.getTime() + AR_OFFSET_MS),
+        },
+      };
     }
     return this.prisma.workOrder.findMany({
       where: {
