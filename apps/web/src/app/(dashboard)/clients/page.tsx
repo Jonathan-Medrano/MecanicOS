@@ -30,7 +30,7 @@ export default function ClientsPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
-  const { data: clients, isLoading } = useQuery<Client[]>({
+  const { data: clients, isLoading, isError } = useQuery<Client[]>({
     queryKey: ["clients", debouncedSearch],
     queryFn: () => api.get("/clients", { params: debouncedSearch ? { search: debouncedSearch } : undefined }).then((r) => r.data),
   });
@@ -73,7 +73,9 @@ export default function ClientsPage() {
         />
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p className="text-sm text-red-500 py-4">Error al cargar clientes. Verificá tu conexión o permisos.</p>
+      ) : isLoading ? (
         <div className="space-y-1">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="bg-white border border-gray-200 rounded-lg h-12 animate-pulse" />

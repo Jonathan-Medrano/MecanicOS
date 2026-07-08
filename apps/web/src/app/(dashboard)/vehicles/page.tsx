@@ -35,7 +35,7 @@ export default function VehiclesPage() {
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: vehicles, isLoading } = useQuery<Vehicle[]>({
+  const { data: vehicles, isLoading, isError } = useQuery<Vehicle[]>({
     queryKey: ["vehicles", debouncedSearch],
     queryFn: () => api.get("/vehicles", { params: debouncedSearch ? { search: debouncedSearch } : undefined }).then((r) => r.data),
   });
@@ -73,7 +73,9 @@ export default function VehiclesPage() {
         />
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p className="text-sm text-red-500 py-4">Error al cargar vehículos. Verificá tu conexión o permisos.</p>
+      ) : isLoading ? (
         <div className="space-y-1">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="bg-white border border-gray-200 rounded-lg h-12 animate-pulse" />

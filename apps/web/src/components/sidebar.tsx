@@ -21,8 +21,8 @@ const NAV: NavItem[] = [
   { href: "/vehicles", label: "Vehículos", icon: Car, permission: "VIEW_VEHICLES" },
   { href: "/work-orders", label: "Órdenes", icon: ClipboardList, permission: "VIEW_ORDERS" },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, permission: "VIEW_WHATSAPP" },
-  { href: "/assistant", label: "Asistente IA", icon: Bot },
-  { href: "/guides", label: "Guías técnicas", icon: BookOpen },
+  { href: "/assistant", label: "Asistente IA", icon: Bot, permission: "VIEW_ORDERS" },
+  { href: "/guides", label: "Guías técnicas", icon: BookOpen, permission: "VIEW_ORDERS" },
   { href: "/employees", label: "Empleados", icon: UserCog, permission: "MANAGE_EMPLOYEES" },
   { href: "/settings", label: "Configuración", icon: Settings, ownerOnly: true },
 ];
