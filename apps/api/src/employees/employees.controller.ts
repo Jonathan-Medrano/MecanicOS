@@ -11,7 +11,7 @@ import {
 import { EmployeesService } from "./employees.service";
 import { Permissions } from "../common/decorators/permissions.decorator";
 import { Permission } from "../common/permissions";
-import { ZodValidationPipe } from "../common/zod-validation.pipe";
+import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { CreateEmployeeSchema, CreateEmployeeDto, UpdateEmployeeSchema, UpdateEmployeeDto } from "@mecanico/shared";
 
 @Controller("employees")

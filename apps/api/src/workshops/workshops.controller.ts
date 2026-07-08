@@ -1,7 +1,7 @@
 import { Body, Controller, ForbiddenException, Get, Patch, Req } from "@nestjs/common";
 import { WorkshopsService } from "./workshops.service";
 import { PrismaService } from "../prisma/prisma.service";
-import { ZodValidationPipe } from "../common/zod-validation.pipe";
+import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { UpdateWorkshopSettingsSchema, UpdateWorkshopSettingsDto } from "@mecanico/shared";
 
 @Controller()
