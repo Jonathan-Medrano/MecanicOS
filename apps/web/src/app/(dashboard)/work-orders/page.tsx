@@ -77,7 +77,7 @@ function WorkOrdersInner() {
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      api.patch(`/work-orders/${id}`, { status }),
+      api.patch(`/work-orders/${id}/status`, { status }),
     onSuccess: () => {
       toast.success("Estado actualizado");
       qc.invalidateQueries({ queryKey: ["work-orders"] });

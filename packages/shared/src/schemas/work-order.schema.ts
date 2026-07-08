@@ -23,6 +23,11 @@ export const UpdateWorkOrderSchema = CreateWorkOrderSchema.partial().extend({
   mechanicNotes: z.string().max(2000).optional(),
 });
 
+export const UpdateWorkOrderStatusSchema = z.object({
+  status: WorkOrderStatus,
+  mechanicNotes: z.string().max(2000).optional(),
+});
+
 export type WorkOrderStatusType = z.infer<typeof WorkOrderStatus>;
 export type CreateWorkOrderDto = z.infer<typeof CreateWorkOrderSchema>;
 export type UpdateWorkOrderDto = z.infer<typeof UpdateWorkOrderSchema>;

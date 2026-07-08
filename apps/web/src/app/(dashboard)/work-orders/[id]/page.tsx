@@ -277,7 +277,7 @@ export default function WorkOrderDetailPage() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: (status: string) => api.patch(`/work-orders/${id}`, { status }),
+    mutationFn: (status: string) => api.patch(`/work-orders/${id}/status`, { status }),
     onSuccess: () => {
       toast.success("Estado actualizado");
       qc.invalidateQueries({ queryKey: ["work-orders"] });

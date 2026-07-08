@@ -13,6 +13,7 @@ import { WorkOrdersService } from "./work-orders.service";
 import {
   CreateWorkOrderSchema,
   UpdateWorkOrderSchema,
+  UpdateWorkOrderStatusSchema,
   CreateWorkOrderItemSchema,
   UpdateWorkOrderItemSchema,
 } from "@mecanico/shared";
@@ -58,12 +59,22 @@ export class WorkOrdersController {
     return this.workOrdersService.findOne(req.auth.workshopId, id);
   }
 
-  @Permissions(Permission.CHANGE_ORDER_STATUS)
+  @Permissions(Permission.EDIT_ORDERS)
   @Patch(":id")
   update(
     @Req() req: any,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdateWorkOrderSchema)) dto: unknown,
+  ) {
+    return this.workOrdersService.update(req.auth.workshopId, id, dto as any);
+  }
+
+  @Permissions(Permission.CHANGE_ORDER_STATUS)
+  @Patch(":id/status")
+  updateStatus(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(UpdateWorkOrderStatusSchema)) dto: unknown,
   ) {
     return this.workOrdersService.update(req.auth.workshopId, id, dto as any);
   }
