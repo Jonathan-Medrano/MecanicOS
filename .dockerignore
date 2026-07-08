@@ -1,18 +1,36 @@
-node_modules
+# Version control
 .git
+.gitignore
+
+# Build artifacts and caches
 .turbo
-apps/web/.next
-apps/web/node_modules
-apps/api/node_modules
-apps/api/dist
-packages/*/node_modules
-**/*.log
+**/dist
+**/.next
+**/*.tsbuildinfo
+
+# Dependencies (pnpm creates Windows junctions — must exclude)
+**/node_modules
+
+# Environment secrets
+**/.env
 **/.env.local
-**/.env*.local
+**/.env.*.local
+**/.env.production
+
+# Tooling
 .claude
 .agents
-skills-lock.json
+**/.vercel
+**/skills-lock.json
+
+# Web app (not needed for API container)
+apps/web
+
+# Infra configs (not needed in container)
 fly.toml
 railway.json
+
+# Docs and misc
 MASTER_PLAN*
-README.md
+**/README.md
+**/*.log
