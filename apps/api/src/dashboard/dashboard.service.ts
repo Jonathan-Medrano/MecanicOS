@@ -51,7 +51,7 @@ export class DashboardService {
       this.prisma.workOrder.findMany({
         where: {
           workshopId,
-          status: "DELIVERED",
+          status: { in: ["DONE", "DELIVERED"] },
           completedAt: { gte: monthStart },
         },
         select: { finalCost: true, estimatedCost: true, items: { select: { quantity: true, unitPrice: true } } },

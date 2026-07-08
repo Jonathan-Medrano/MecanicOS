@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -27,6 +28,10 @@ export class EmployeesService {
   ) {}
 
   async create(workshopId: string, dto: CreateEmployeeDto) {
+    if (!dto.name?.trim()) throw new BadRequestException("Name is required");
+    if (!dto.email?.includes("@")) throw new BadRequestException("Valid email is required");
+    if (!dto.permissions?.length) throw new BadRequestException("At least one permission is required");
+
     const existing = await this.prisma.workshopEmployee.findFirst({
       where: { workshopId, email: dto.email },
     });

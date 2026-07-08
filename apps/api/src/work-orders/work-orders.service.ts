@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import {
@@ -21,6 +21,11 @@ export class WorkOrdersService {
   ) {}
 
   async create(workshopId: string, dto: CreateWorkOrderDto) {
+    const vehicle = await this.prisma.vehicle.findFirst({
+      where: { id: dto.vehicleId, clientId: dto.clientId, workshopId },
+    });
+    if (!vehicle) throw new BadRequestException("Vehicle does not belong to this client");
+
     return this.prisma.workOrder.create({
       data: { ...dto, workshopId },
       include: {
@@ -115,10 +120,10 @@ export class WorkOrdersService {
     const existing = await this.findOne(workshopId, id);
 
     const data: any = { ...dto };
-    if (dto.status === "IN_PROGRESS" && !data.startedAt) {
+    if (dto.status === "IN_PROGRESS" && !existing.startedAt) {
       data.startedAt = new Date();
     }
-    if ((dto.status === "DONE" || dto.status === "DELIVERED") && !data.completedAt) {
+    if ((dto.status === "DONE" || dto.status === "DELIVERED") && !existing.completedAt) {
       data.completedAt = new Date();
     }
 

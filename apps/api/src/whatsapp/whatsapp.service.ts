@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PrismaService } from "../prisma/prisma.service";
@@ -195,6 +195,11 @@ export class WhatsAppService {
   }
 
   async classifyPhone(workshopId: string, phone: string, clientId: string) {
+    const client = await this.prisma.client.findFirst({
+      where: { id: clientId, workshopId },
+    });
+    if (!client) throw new NotFoundException("Client not found");
+
     return this.prisma.message.updateMany({
       where: { workshopId, phone },
       data: { clientId },

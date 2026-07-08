@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Post, Req } from "@nestjs/common";
 import { WhatsAppService } from "./whatsapp.service";
 import { Public } from "../common/decorators/public.decorator";
 
@@ -24,6 +24,7 @@ export class WhatsAppController {
 
   @Post("conversations/:phone/send")
   send(@Req() req: any, @Param("phone") phone: string, @Body() body: { text: string }) {
+    if (!body?.text?.trim()) throw new BadRequestException("text is required");
     return this.waService.sendMessage(req.auth.workshopId, phone, body.text);
   }
 

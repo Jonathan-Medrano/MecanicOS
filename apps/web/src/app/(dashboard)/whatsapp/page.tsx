@@ -244,7 +244,7 @@ export default function WhatsAppPage() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && text.trim()) {
+                if (e.key === "Enter" && !e.shiftKey && text.trim() && selectedPhone) {
                   e.preventDefault();
                   sendMutation.mutate();
                 }

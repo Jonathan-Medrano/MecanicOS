@@ -1,7 +1,6 @@
 "use client";
 
 import { useSignIn } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -9,7 +8,6 @@ type Step = "request" | "verify";
 
 export default function ForgotPasswordPage() {
   const { signIn, fetchStatus } = useSignIn();
-  const router = useRouter();
 
   const [step, setStep] = useState<Step>("request");
   const [email, setEmail] = useState("");
@@ -48,7 +46,7 @@ export default function ForgotPasswordPage() {
       const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({ password: newPassword });
       if (submitError) throw submitError;
       await signIn.finalize();
-      router.push("/");
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err?.longMessage ?? err?.errors?.[0]?.longMessage ?? "Código o contraseña inválidos");
     } finally {

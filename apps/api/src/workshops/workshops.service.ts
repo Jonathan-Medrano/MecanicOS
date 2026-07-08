@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -26,6 +26,10 @@ export class WorkshopsService {
   }
 
   update(id: string, data: { name?: string; phone?: string; address?: string; botAutoReply?: boolean; botAutoReplyMsg?: string }) {
+    if (data.name != null && !data.name.trim()) throw new BadRequestException("Name cannot be empty");
+    if (data.botAutoReply != null && typeof data.botAutoReply !== "boolean") {
+      throw new BadRequestException("botAutoReply must be boolean");
+    }
     return this.prisma.workshop.update({ where: { id }, data });
   }
 }
