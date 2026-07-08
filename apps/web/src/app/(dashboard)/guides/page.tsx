@@ -179,7 +179,7 @@ export default function GuidesPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: guides, isLoading } = useQuery<Guide[]>({
+  const { data: guides, isLoading, isError } = useQuery<Guide[]>({
     queryKey: ["guides", debouncedSearch],
     queryFn: () => {
       const qs = debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : "";
@@ -208,7 +208,9 @@ export default function GuidesPage() {
         />
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p className="text-sm text-red-500 py-4">Error al cargar guías. Verificá tu conexión o permisos.</p>
+      ) : isLoading ? (
         <p className="text-sm text-gray-400">Cargando...</p>
       ) : !guides?.length ? (
         <div className="text-center py-12 text-gray-400">

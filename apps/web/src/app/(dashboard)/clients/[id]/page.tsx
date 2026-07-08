@@ -5,8 +5,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
+import { ArrowLeft, ExternalLink, Pencil, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { ClientForm } from "@/components/forms/client-form";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { relativeTime } from "@/lib/relative-time";
 import { usePermission } from "@/hooks/use-me";
@@ -42,17 +43,20 @@ type ClientDetail = {
 
 export default function ClientDetailPage() {
   const canEditOrders = usePermission("EDIT_ORDERS");
+  const canEdit = usePermission("EDIT_CLIENTS");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
   const [newOrderOpen, setNewOrderOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { data: client, isLoading } = useQuery<ClientDetail>({
+  const { data: client, isLoading, isError } = useQuery<ClientDetail>({
     queryKey: ["clients", id],
     queryFn: () => api.get(`/clients/${id}`).then((r) => r.data),
   });
 
   if (isLoading) return <p className="text-gray-400 text-sm">Cargando...</p>;
+  if (isError) return <p className="text-sm text-red-500">Error al cargar el cliente. Verificá tu conexión o permisos.</p>;
   if (!client) return <p className="text-sm text-red-500">Cliente no encontrado.</p>;
 
   return (
@@ -62,7 +66,15 @@ export default function ClientDetailPage() {
         <button onClick={() => router.back()} className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-semibold text-gray-900">{client.name}</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 flex-1">{client.name}</h1>
+        {canEdit && (
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded-md px-3 py-1.5 hover:bg-gray-50"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+        )}
       </div>
 
       {/* Info */}
@@ -205,6 +217,18 @@ export default function ClientDetailPage() {
             defaultClientId={client.id}
             onSuccess={() => {
               setNewOrderOpen(false);
+              qc.invalidateQueries({ queryKey: ["clients", id] });
+            }}
+          />
+        </Modal>
+      )}
+
+      {canEdit && (
+        <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar cliente">
+          <ClientForm
+            client={client}
+            onSuccess={() => {
+              setEditOpen(false);
               qc.invalidateQueries({ queryKey: ["clients", id] });
             }}
           />

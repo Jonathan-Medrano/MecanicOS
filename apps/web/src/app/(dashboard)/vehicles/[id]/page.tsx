@@ -5,8 +5,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft, Plus, ExternalLink } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, ExternalLink } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { VehicleForm } from "@/components/forms/vehicle-form";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { relativeTime } from "@/lib/relative-time";
 import { usePermission } from "@/hooks/use-me";
@@ -31,6 +32,7 @@ type WorkOrder = {
 
 type VehicleDetail = {
   id: string;
+  clientId: string;
   brand: string;
   model: string;
   year?: number;
@@ -44,12 +46,14 @@ type VehicleDetail = {
 
 export default function VehicleDetailPage() {
   const canEditOrders = usePermission("EDIT_ORDERS");
+  const canEdit = usePermission("EDIT_VEHICLES");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
   const [newOrderOpen, setNewOrderOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { data: vehicle, isLoading } = useQuery<VehicleDetail>({
+  const { data: vehicle, isLoading, isError } = useQuery<VehicleDetail>({
     queryKey: ["vehicles", id],
     queryFn: () => api.get(`/vehicles/${id}`).then((r) => r.data),
   });
@@ -63,6 +67,7 @@ export default function VehicleDetailPage() {
       </div>
     );
   }
+  if (isError) return <p className="text-sm text-red-500">Error al cargar el vehículo. Verificá tu conexión o permisos.</p>;
   if (!vehicle) return <p className="text-sm text-red-500">Vehículo no encontrado.</p>;
 
   return (
@@ -75,12 +80,20 @@ export default function VehicleDetailPage() {
         >
           <ArrowLeft size={18} />
         </button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">
             {vehicle.brand} {vehicle.model}
           </h1>
           <p className="text-sm font-mono text-gray-500">{vehicle.plate}</p>
         </div>
+        {canEdit && (
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded-md px-3 py-1.5 hover:bg-gray-50 shrink-0"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+        )}
       </div>
 
       {/* Vehicle info */}
@@ -201,6 +214,18 @@ export default function VehicleDetailPage() {
             defaultVehicleId={vehicle.id}
             onSuccess={() => {
               setNewOrderOpen(false);
+              qc.invalidateQueries({ queryKey: ["vehicles", id] });
+            }}
+          />
+        </Modal>
+      )}
+
+      {canEdit && (
+        <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar vehículo">
+          <VehicleForm
+            vehicle={{ id: vehicle.id, clientId: vehicle.clientId, brand: vehicle.brand, model: vehicle.model, year: vehicle.year ?? new Date().getFullYear(), plate: vehicle.plate, color: vehicle.color, vin: vehicle.vin, notes: vehicle.notes }}
+            onSuccess={() => {
+              setEditOpen(false);
               qc.invalidateQueries({ queryKey: ["vehicles", id] });
             }}
           />

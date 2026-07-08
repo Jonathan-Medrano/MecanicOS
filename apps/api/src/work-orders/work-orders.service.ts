@@ -114,11 +114,11 @@ export class WorkOrdersService {
 
   async removeItem(workshopId: string, workOrderId: string, itemId: string) {
     await this.findOne(workshopId, workOrderId);
-    const item = await this.prisma.workOrderItem.findFirst({
+    const result = await this.prisma.workOrderItem.deleteMany({
       where: { id: itemId, workOrderId },
     });
-    if (!item) throw new NotFoundException("Item not found");
-    return this.prisma.workOrderItem.delete({ where: { id: itemId } });
+    if (result.count === 0) throw new NotFoundException("Item not found");
+    return result;
   }
 
   async update(workshopId: string, id: string, dto: UpdateWorkOrderDto) {

@@ -62,7 +62,7 @@ function WorkOrdersInner() {
 
   const isToday = statusFilter === "TODAY";
 
-  const { data: orders, isLoading } = useQuery<WorkOrder[]>({
+  const { data: orders, isLoading, isError } = useQuery<WorkOrder[]>({
     queryKey: ["work-orders", debouncedSearch, statusFilter, initialClientId],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -153,7 +153,9 @@ function WorkOrdersInner() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p className="text-sm text-red-500 py-4">Error al cargar órdenes. Verificá tu conexión o permisos.</p>
+      ) : isLoading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="bg-white border border-gray-200 rounded-lg h-16 animate-pulse" />

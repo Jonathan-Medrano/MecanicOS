@@ -339,7 +339,7 @@ export default function WorkOrderDetailPage() {
     }
   }
 
-  const { data: order, isLoading } = useQuery<WorkOrderDetail>({
+  const { data: order, isLoading, isError } = useQuery<WorkOrderDetail>({
     queryKey: ["work-orders", id],
     queryFn: () => api.get(`/work-orders/${id}`).then((r) => r.data),
   });
@@ -399,6 +399,7 @@ export default function WorkOrderDetailPage() {
   });
 
   if (isLoading) return <p className="text-gray-400 text-sm">Cargando...</p>;
+  if (isError) return <p className="text-sm text-red-500">Error al cargar la orden. Verificá tu conexión o permisos.</p>;
   if (!order) return <p className="text-sm text-red-500">Orden no encontrada.</p>;
 
   const s = STATUS[order.status] ?? { label: order.status, color: "bg-gray-100 text-gray-700" };
