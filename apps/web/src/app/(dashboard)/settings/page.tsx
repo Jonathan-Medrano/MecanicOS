@@ -170,7 +170,7 @@ export default function SettingsPage() {
           <div className="flex justify-end">
             <button
               onClick={() => mutation.mutate({ name, phone, address, botAutoReply, botAutoReplyMsg })}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || !name.trim()}
               className="text-xs bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
             >
               {mutation.isPending ? "Guardando..." : "Guardar configuración del bot"}

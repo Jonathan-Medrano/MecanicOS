@@ -43,10 +43,11 @@ type Overview = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { data, isLoading } = useQuery<Overview>({
+  const { data, isLoading, isError } = useQuery<Overview>({
     queryKey: ["dashboard-overview"],
     queryFn: () => api.get("/dashboard/overview").then((r) => r.data),
     refetchInterval: 60_000,
+    retry: 2,
   });
 
   const { data: todayScheduled } = useQuery<RecentOrder[]>({
@@ -73,6 +74,18 @@ export default function DashboardPage() {
     { label: "Clientes",    value: stats?.totalClients,     href: "/clients", color: "text-gray-700" },
     { label: "Vehículos",   value: stats?.totalVehicles,    href: "/vehicles", color: "text-gray-700" },
   ];
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <p className="text-sm text-red-700 font-medium">No se pudo conectar con el servidor.</p>
+          <p className="text-xs text-red-500 mt-1">Verificá tu conexión o intentá recargar la página.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

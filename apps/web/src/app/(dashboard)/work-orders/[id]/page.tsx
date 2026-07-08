@@ -244,6 +244,24 @@ export default function WorkOrderDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  async function downloadPdf() {
+    setPdfLoading(true);
+    try {
+      const res = await api.get(`/pdf/work-orders/${id}`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orden-${id.slice(0, 8)}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Error al generar el PDF");
+    } finally {
+      setPdfLoading(false);
+    }
+  }
 
   const { data: order, isLoading } = useQuery<WorkOrderDetail>({
     queryKey: ["work-orders", id],
@@ -306,7 +324,10 @@ export default function WorkOrderDetailPage() {
   const money = (n: number) => `$${n.toLocaleString("es-AR")}`;
 
   const itemsTotal = (order.items ?? []).reduce(
-    (acc, it) => acc + Number(it.quantity) * Number(it.unitPrice),
+    (acc, it) => {
+      const val = Number(it.quantity) * Number(it.unitPrice);
+      return acc + (isNaN(val) ? 0 : val);
+    },
     0,
   );
   const hasItems = order.items && order.items.length > 0;
@@ -331,14 +352,13 @@ export default function WorkOrderDetailPage() {
           >
             Editar
           </button>
-          <a
-            href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api"}/pdf/work-orders/${order.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs border border-gray-300 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-50"
+          <button
+            onClick={downloadPdf}
+            disabled={pdfLoading}
+            className="flex items-center gap-1 text-xs border border-gray-300 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-50 disabled:opacity-50"
           >
-            <FileDown size={13} /> PDF
-          </a>
+            <FileDown size={13} /> {pdfLoading ? "..." : "PDF"}
+          </button>
           <Link
             href={`/assistant?vehicle=${encodeURIComponent(`${order.vehicle.brand} ${order.vehicle.model}${order.vehicle.year ? ` ${order.vehicle.year}` : ""}`)}`}
             className="flex items-center gap-1 text-xs border border-blue-200 text-blue-600 px-3 py-2 rounded-md hover:bg-blue-50"

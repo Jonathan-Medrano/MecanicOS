@@ -60,11 +60,12 @@ function WorkOrdersInner() {
   const isToday = statusFilter === "TODAY";
 
   const { data: orders, isLoading } = useQuery<WorkOrder[]>({
-    queryKey: ["work-orders", debouncedSearch, isToday ? "" : statusFilter, initialClientId],
+    queryKey: ["work-orders", debouncedSearch, statusFilter, initialClientId],
     queryFn: () => {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set("search", debouncedSearch);
-      if (!isToday && statusFilter) params.set("status", statusFilter);
+      if (isToday) params.set("scheduledDate", "today");
+      else if (statusFilter) params.set("status", statusFilter);
       if (initialClientId) params.set("clientId", initialClientId);
       const qs = params.toString();
       return api.get(`/work-orders${qs ? `?${qs}` : ""}`).then((r) => r.data);
@@ -92,12 +93,7 @@ function WorkOrdersInner() {
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar"),
   });
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const filtered = isToday
-    ? orders?.filter((o) => new Date(o.createdAt) >= todayStart)
-    : orders;
+  const filtered = orders;
 
   return (
     <div>
