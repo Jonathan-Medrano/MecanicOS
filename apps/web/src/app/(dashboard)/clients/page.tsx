@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { ClientForm } from "@/components/forms/client-form";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/use-me";
 
 type Client = {
   id: string;
@@ -20,6 +21,8 @@ type Client = {
 };
 
 export default function ClientsPage() {
+  const canEdit = usePermission("EDIT_CLIENTS");
+  const canDelete = usePermission("DELETE_CLIENTS");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Client | null>(null);
   const [search, setSearch] = useState("");
@@ -50,12 +53,14 @@ export default function ClientsPage() {
     <div>
       <div className="flex items-center justify-between mb-5 gap-3">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Clientes</h1>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
-        >
-          + Nuevo
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+          >
+            + Nuevo
+          </button>
+        )}
       </div>
 
       <div className="mb-4">
@@ -105,20 +110,24 @@ export default function ClientsPage() {
                   <td className="px-4 py-3 text-sm text-gray-600 text-center hidden sm:table-cell">{c._count.workOrders}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setEditTarget(c)}
-                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
-                        title="Editar"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(c)}
-                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => setEditTarget(c)}
+                          className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
+                          title="Editar"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(c)}
+                          className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -133,12 +142,16 @@ export default function ClientsPage() {
         </div>
       )}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo cliente">
-        <ClientForm onSuccess={() => setCreateOpen(false)} />
-      </Modal>
-      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar cliente">
-        {editTarget && <ClientForm client={editTarget} onSuccess={() => setEditTarget(null)} />}
-      </Modal>
+      {canEdit && (
+        <>
+          <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo cliente">
+            <ClientForm onSuccess={() => setCreateOpen(false)} />
+          </Modal>
+          <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar cliente">
+            {editTarget && <ClientForm client={editTarget} onSuccess={() => setEditTarget(null)} />}
+          </Modal>
+        </>
+      )}
     </div>
   );
 }

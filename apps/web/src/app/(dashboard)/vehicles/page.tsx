@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { VehicleForm } from "@/components/forms/vehicle-form";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/use-me";
 
 type Vehicle = {
   id: string;
@@ -25,6 +26,7 @@ type Vehicle = {
 };
 
 export default function VehiclesPage() {
+  const canEdit = usePermission("EDIT_VEHICLES");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Vehicle | null>(null);
   const [search, setSearch] = useState("");
@@ -51,12 +53,14 @@ export default function VehiclesPage() {
     <div>
       <div className="flex items-center justify-between mb-5 gap-3">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Vehículos</h1>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
-        >
-          + Nuevo
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-md text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+          >
+            + Nuevo
+          </button>
+        )}
       </div>
 
       <div className="mb-4">
@@ -84,7 +88,7 @@ export default function VehiclesPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Patente</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">Propietario</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">Órdenes</th>
-                <th className="px-4 py-3" />
+                {canEdit && <th className="px-4 py-3" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -101,27 +105,29 @@ export default function VehiclesPage() {
                   <td className="px-4 py-3 text-sm font-mono text-gray-600">{v.plate}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{v.client.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 text-center hidden sm:table-cell">{v._count.workOrders}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => setEditTarget(v)}
-                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
-                        title="Editar"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (!confirm(`¿Eliminar ${v.brand} ${v.model} (${v.plate})?`)) return;
-                          deleteMutation.mutate(v.id);
-                        }}
-                        className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
+                  {canEdit && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setEditTarget(v)}
+                          className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
+                          title="Editar"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!confirm(`¿Eliminar ${v.brand} ${v.model} (${v.plate})?`)) return;
+                            deleteMutation.mutate(v.id);
+                          }}
+                          className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -134,15 +140,18 @@ export default function VehiclesPage() {
         </div>
       )}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo vehículo">
-        <VehicleForm onSuccess={() => setCreateOpen(false)} />
-      </Modal>
-
-      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar vehículo">
-        {editTarget && (
-          <VehicleForm vehicle={editTarget} onSuccess={() => setEditTarget(null)} />
-        )}
-      </Modal>
+      {canEdit && (
+        <>
+          <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo vehículo">
+            <VehicleForm onSuccess={() => setCreateOpen(false)} />
+          </Modal>
+          <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar vehículo">
+            {editTarget && (
+              <VehicleForm vehicle={editTarget} onSuccess={() => setEditTarget(null)} />
+            )}
+          </Modal>
+        </>
+      )}
     </div>
   );
 }
