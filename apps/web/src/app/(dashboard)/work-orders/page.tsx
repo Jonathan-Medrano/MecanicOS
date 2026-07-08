@@ -7,6 +7,7 @@ import { Pencil, Trash2, CalendarClock } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { relativeTime } from "@/lib/relative-time";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -56,6 +57,7 @@ function WorkOrdersInner() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WorkOrder | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<WorkOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -207,11 +209,7 @@ function WorkOrdersInner() {
 
                 {canEdit && (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!confirm(`¿Eliminar la orden "${o.description.slice(0, 40)}"?`)) return;
-                      deleteMutation.mutate(o.id);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(o); }}
                     className="shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                     title="Eliminar"
                   >
@@ -271,6 +269,18 @@ function WorkOrdersInner() {
           </Modal>
         </>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+          }
+        }}
+        loading={deleteMutation.isPending}
+        title="¿Eliminar esta orden?"
+        description={deleteTarget ? `"${deleteTarget.description.slice(0, 60)}"` : undefined}
+      />
     </div>
   );
 }

@@ -211,7 +211,11 @@ export default function GuidesPage() {
       {isError ? (
         <p className="text-sm text-red-500 py-4">Error al cargar guías. Verificá tu conexión o permisos.</p>
       ) : isLoading ? (
-        <p className="text-sm text-gray-400">Cargando...</p>
+        <div className="space-y-2 animate-pulse">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-14 bg-gray-200 rounded-lg" />
+          ))}
+        </div>
       ) : !guides?.length ? (
         <div className="text-center py-12 text-gray-400">
           <BookOpen size={32} className="mx-auto mb-3 opacity-40" />

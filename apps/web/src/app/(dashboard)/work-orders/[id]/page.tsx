@@ -398,7 +398,19 @@ export default function WorkOrderDetailPage() {
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al enviar WhatsApp"),
   });
 
-  if (isLoading) return <p className="text-gray-400 text-sm">Cargando...</p>;
+  if (isLoading) {
+    return (
+      <div className="space-y-4 max-w-3xl animate-pulse">
+        <div className="h-8 w-2/3 bg-gray-200 rounded" />
+        <div className="h-24 bg-gray-200 rounded-lg" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-20 bg-gray-200 rounded-lg" />
+          <div className="h-20 bg-gray-200 rounded-lg" />
+        </div>
+        <div className="h-32 bg-gray-200 rounded-lg" />
+      </div>
+    );
+  }
   if (isError) return <p className="text-sm text-red-500">Error al cargar la orden. Verificá tu conexión o permisos.</p>;
   if (!order) return <p className="text-sm text-red-500">Orden no encontrada.</p>;
 

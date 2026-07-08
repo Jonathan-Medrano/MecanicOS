@@ -6,6 +6,7 @@ import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePermission } from "@/hooks/use-me";
 
 const ALL_PERMISSIONS = [
@@ -136,6 +137,7 @@ export default function EmployeesPage() {
   const canManage = usePermission("MANAGE_EMPLOYEES");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const qc = useQueryClient();
 
   const { data: employees, isLoading, isError } = useQuery<Employee[]>({
@@ -228,10 +230,7 @@ export default function EmployeesPage() {
                   <Pencil size={15} />
                 </button>
                 <button
-                  onClick={() => {
-                    if (!confirm(`¿Eliminar a ${emp.name}?`)) return;
-                    deleteMutation.mutate(emp.id);
-                  }}
+                  onClick={() => setDeleteTarget(emp)}
                   className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                   title="Eliminar"
                 >
@@ -260,6 +259,18 @@ export default function EmployeesPage() {
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar empleado">
         {editTarget && <EmployeeForm employee={editTarget} onSuccess={() => setEditTarget(null)} />}
       </Modal>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+          }
+        }}
+        loading={deleteMutation.isPending}
+        title={`¿Eliminar a ${deleteTarget?.name}?`}
+        description="Esta acción no se puede deshacer."
+      />
     </div>
   );
 }

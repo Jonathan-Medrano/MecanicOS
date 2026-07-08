@@ -55,7 +55,19 @@ export default function ClientDetailPage() {
     queryFn: () => api.get(`/clients/${id}`).then((r) => r.data),
   });
 
-  if (isLoading) return <p className="text-gray-400 text-sm">Cargando...</p>;
+  if (isLoading) {
+    return (
+      <div className="space-y-4 max-w-3xl animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 bg-gray-200 rounded-md" />
+          <div className="h-8 w-48 bg-gray-200 rounded" />
+        </div>
+        <div className="h-28 bg-gray-200 rounded-lg" />
+        <div className="h-40 bg-gray-200 rounded-lg" />
+        <div className="h-32 bg-gray-200 rounded-lg" />
+      </div>
+    );
+  }
   if (isError) return <p className="text-sm text-red-500">Error al cargar el cliente. Verificá tu conexión o permisos.</p>;
   if (!client) return <p className="text-sm text-red-500">Cliente no encontrado.</p>;
 

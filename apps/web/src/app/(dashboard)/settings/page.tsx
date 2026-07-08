@@ -38,7 +38,20 @@ export default function SettingsPage() {
   });
 
   if (isLoading) {
-    return <p className="text-sm text-gray-400 py-8">Cargando...</p>;
+    return (
+      <div className="max-w-lg space-y-5 animate-pulse">
+        <div className="h-8 w-48 bg-gray-200 rounded" />
+        <div className="space-y-3">
+          <div className="h-4 w-24 bg-gray-200 rounded" />
+          <div className="h-10 bg-gray-200 rounded-lg" />
+          <div className="h-4 w-24 bg-gray-200 rounded" />
+          <div className="h-10 bg-gray-200 rounded-lg" />
+          <div className="h-4 w-24 bg-gray-200 rounded" />
+          <div className="h-10 bg-gray-200 rounded-lg" />
+        </div>
+        <div className="h-10 w-32 bg-gray-200 rounded-lg" />
+      </div>
+    );
   }
 
   if (!me?.isOwner) {

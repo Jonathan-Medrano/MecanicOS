@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { VehicleForm } from "@/components/forms/vehicle-form";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ export default function VehiclesPage() {
   const canEdit = usePermission("EDIT_VEHICLES");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Vehicle | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [search, setSearch] = useState("");
   const qc = useQueryClient();
   const router = useRouter();
@@ -118,10 +120,7 @@ export default function VehiclesPage() {
                           <Pencil size={15} />
                         </button>
                         <button
-                          onClick={() => {
-                            if (!confirm(`¿Eliminar ${v.brand} ${v.model} (${v.plate})?`)) return;
-                            deleteMutation.mutate(v.id);
-                          }}
+                          onClick={() => setDeleteTarget(v)}
                           className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                           title="Eliminar"
                         >
@@ -154,6 +153,18 @@ export default function VehiclesPage() {
           </Modal>
         </>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+          }
+        }}
+        loading={deleteMutation.isPending}
+        title={`¿Eliminar ${deleteTarget?.brand} ${deleteTarget?.model}?`}
+        description={deleteTarget ? `Patente ${deleteTarget.plate}. Esta acción no se puede deshacer.` : undefined}
+      />
     </div>
   );
 }

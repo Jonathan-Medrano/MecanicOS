@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ClientForm } from "@/components/forms/client-form";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ export default function ClientsPage() {
   const canDelete = usePermission("DELETE_CLIENTS");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Client | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const router = useRouter();
@@ -44,10 +46,7 @@ export default function ClientsPage() {
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar"),
   });
 
-  const handleDelete = (c: Client) => {
-    if (!confirm(`¿Eliminar a ${c.name}?`)) return;
-    deleteMutation.mutate(c.id);
-  };
+  const handleDelete = (c: Client) => setDeleteTarget(c);
 
   return (
     <div>
@@ -154,6 +153,18 @@ export default function ClientsPage() {
           </Modal>
         </>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+          }
+        }}
+        loading={deleteMutation.isPending}
+        title={`¿Eliminar a ${deleteTarget?.name}?`}
+        description="Esta acción no se puede deshacer."
+      />
     </div>
   );
 }
