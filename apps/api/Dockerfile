@@ -18,7 +18,7 @@ COPY . .
 # Generate Prisma client types before TypeScript compilation
 RUN pnpm --filter api exec prisma generate
 # Build shared (install tsc globally in this stage only)
-RUN npm install -g typescript && cd packages/shared && tsc -p tsconfig.json
+RUN npm install -g typescript@5.7.3 && cd packages/shared && tsc -p tsconfig.json
 # Compile the API
 RUN pnpm --filter api build
 
