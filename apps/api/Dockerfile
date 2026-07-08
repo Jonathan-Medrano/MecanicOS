@@ -3,13 +3,12 @@ RUN npm install -g pnpm
 
 FROM base AS deps
 WORKDIR /app
-# Copy all workspace package manifests so pnpm resolves the full workspace
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
-COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
-# Install all workspace deps (includes devDeps needed to build packages/shared)
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# apps/web is excluded from context; provide a stub so pnpm workspace recognizes it
+RUN mkdir -p apps/web && echo '{"name":"web","version":"0.0.0","private":true}' > apps/web/package.json
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter api...
 
 FROM base AS builder
 WORKDIR /app
@@ -18,8 +17,8 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
 # Generate Prisma client types before TypeScript compilation
 RUN pnpm --filter api exec prisma generate
-# Build shared package so @mecanico/shared resolves
-RUN pnpm --filter @mecanico/shared build
+# Build shared using tsc from the workspace root node_modules
+RUN cd packages/shared && /app/node_modules/.bin/tsc -p tsconfig.json
 # Compile the API
 RUN pnpm --filter api build
 
