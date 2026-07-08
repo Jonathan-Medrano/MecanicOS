@@ -14,7 +14,7 @@ export class WorkshopsController {
     const { isOwner, permissions, workshopId } = req.auth;
     const workshop = await this.prisma.workshop.findUnique({
       where: { id: workshopId },
-      select: { id: true, name: true, phone: true, address: true },
+      select: { id: true, name: true, phone: true, address: true, botAutoReply: true, botAutoReplyMsg: true },
     });
     return { isOwner, permissions, workshop };
   }
@@ -22,7 +22,7 @@ export class WorkshopsController {
   @Patch("workshop/settings")
   async updateSettings(
     @Req() req: any,
-    @Body() dto: { name?: string; phone?: string; address?: string },
+    @Body() dto: { name?: string; phone?: string; address?: string; botAutoReply?: boolean; botAutoReplyMsg?: string },
   ) {
     const { workshopId } = req.auth;
     return this.workshopsService.update(workshopId, dto);

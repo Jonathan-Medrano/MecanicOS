@@ -25,7 +25,7 @@ export class WorkshopsService {
     });
   }
 
-  update(id: string, data: { name?: string; phone?: string; address?: string }) {
+  update(id: string, data: { name?: string; phone?: string; address?: string; botAutoReply?: boolean; botAutoReplyMsg?: string }) {
     return this.prisma.workshop.update({ where: { id }, data });
   }
 }

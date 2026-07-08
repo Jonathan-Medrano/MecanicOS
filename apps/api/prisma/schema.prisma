@@ -16,6 +16,8 @@ model Workshop {
   name      String
   phone     String?
   address   String?
+  botAutoReply    Boolean @default(false)
+  botAutoReplyMsg String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
