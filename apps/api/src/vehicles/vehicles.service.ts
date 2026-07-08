@@ -88,6 +88,6 @@ export class VehiclesService {
         `El vehículo tiene órdenes de trabajo registradas y no puede eliminarse para preservar el historial.`,
       );
     }
-    return this.prisma.vehicle.delete({ where: { id } });
+    return this.prisma.vehicle.deleteMany({ where: { id, workshopId } });
   }
 }

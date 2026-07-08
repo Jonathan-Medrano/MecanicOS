@@ -153,7 +153,7 @@ export class WorkOrdersService {
 
   async remove(workshopId: string, id: string) {
     await this.findOne(workshopId, id);
-    return this.prisma.workOrder.delete({ where: { id } });
+    return this.prisma.workOrder.deleteMany({ where: { id, workshopId } });
   }
 
   async notifyClient(workshopId: string, id: string) {

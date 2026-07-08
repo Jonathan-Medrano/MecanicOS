@@ -42,7 +42,7 @@ export class GuidesService {
 
   async remove(workshopId: string, id: string) {
     await this.findOne(workshopId, id);
-    return this.prisma.technicalGuide.delete({ where: { id } });
+    return this.prisma.technicalGuide.deleteMany({ where: { id, workshopId } });
   }
 
   findRelevant(workshopId: string, keywords: string[]) {

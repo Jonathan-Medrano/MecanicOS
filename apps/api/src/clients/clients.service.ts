@@ -78,6 +78,6 @@ export class ClientsService {
         `El cliente tiene órdenes de trabajo registradas y no puede eliminarse para preservar el historial.`,
       );
     }
-    return this.prisma.client.delete({ where: { id } });
+    return this.prisma.client.deleteMany({ where: { id, workshopId } });
   }
 }
