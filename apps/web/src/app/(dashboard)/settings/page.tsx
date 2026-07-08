@@ -66,7 +66,8 @@ export default function SettingsPage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            disabled={mutation.isPending}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
             placeholder="Taller Mecánico San Martín"
           />
         </div>
@@ -78,7 +79,8 @@ export default function SettingsPage() {
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            disabled={mutation.isPending}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
             placeholder="+5491112345678"
           />
           <p className="text-xs text-gray-400 mt-1">
@@ -91,7 +93,8 @@ export default function SettingsPage() {
           <input
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            disabled={mutation.isPending}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
             placeholder="Av. Corrientes 1234, Buenos Aires"
           />
         </div>
@@ -143,7 +146,8 @@ export default function SettingsPage() {
               role="switch"
               aria-checked={botAutoReply}
               onClick={() => setBotAutoReply((v) => !v)}
-              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${botAutoReply ? "bg-green-500" : "bg-gray-200"}`}
+              disabled={mutation.isPending}
+              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${botAutoReply ? "bg-green-500" : "bg-gray-200"}`}
             >
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${botAutoReply ? "translate-x-6" : "translate-x-1"}`} />
             </button>
@@ -157,9 +161,10 @@ export default function SettingsPage() {
               <textarea
                 value={botAutoReplyMsg}
                 onChange={(e) => setBotAutoReplyMsg(e.target.value)}
+                disabled={mutation.isPending}
                 rows={3}
                 placeholder="¡Hola! 👋 Gracias por escribirnos. En breve te atendemos."
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none disabled:bg-gray-50 disabled:text-gray-400"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Dejalo vacío para usar el mensaje por defecto.

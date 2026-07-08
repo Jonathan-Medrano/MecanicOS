@@ -6,6 +6,7 @@ import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
+import { usePermission } from "@/hooks/use-me";
 
 const ALL_PERMISSIONS = [
   { key: "VIEW_CLIENTS",        label: "Ver clientes" },
@@ -132,13 +133,15 @@ function EmployeeForm({ employee, onSuccess }: { employee?: Employee; onSuccess:
 }
 
 export default function EmployeesPage() {
+  const canManage = usePermission("MANAGE_EMPLOYEES");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | null>(null);
   const qc = useQueryClient();
 
-  const { data: employees, isLoading } = useQuery<Employee[]>({
+  const { data: employees, isLoading, isError } = useQuery<Employee[]>({
     queryKey: ["employees"],
     queryFn: () => api.get("/employees").then((r) => r.data),
+    enabled: canManage,
   });
 
   const deleteMutation = useMutation({
@@ -149,6 +152,22 @@ export default function EmployeesPage() {
     },
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al eliminar"),
   });
+
+  if (!canManage) {
+    return (
+      <div className="text-center py-20 text-gray-400 text-sm">
+        No tenés permisos para gestionar empleados.
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center mt-6">
+        <p className="text-sm text-red-700 font-medium">No se pudieron cargar los empleados.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
