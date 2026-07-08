@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PrismaService } from "../prisma/prisma.service";
 import { BotService } from "./bot.service";
 import axios from "axios";
@@ -33,19 +34,24 @@ export class WhatsAppService {
 
     const remoteJid: string = data.key?.remoteJid ?? "";
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@c.us", "");
-    const body: string =
-      data.message?.conversation ??
-      data.message?.extendedTextMessage?.text ??
-      "[media]";
     const waMsgId: string = data.key?.id;
 
-    // Check if sender is an employee of this workshop
+    // Transcribe audio if applicable, else extract text
+    const isAudio = data?.messageType === "audioMessage" || !!data?.message?.audioMessage;
+    let body: string;
+    if (isAudio) {
+      const transcription = await this.transcribeAudio(data);
+      body = transcription ?? "[audio no transcripto]";
+    } else {
+      body = data.message?.conversation ?? data.message?.extendedTextMessage?.text ?? "[media]";
+    }
+
+    // Check if sender is an employee
     const employee = await this.prisma.workshopEmployee.findFirst({
       where: { workshopId, phone: { endsWith: phone.slice(-8) } },
     });
 
     if (employee) {
-      // Route to employee bot
       const reply = await this.botService.handle(
         workshopId,
         phone,
@@ -57,7 +63,7 @@ export class WhatsAppService {
       return { ok: true, routed: "bot" };
     }
 
-    // Otherwise: client or unknown
+    // Client or unknown — save to inbox
     const client = await this.prisma.client.findFirst({
       where: { workshopId, phone: { endsWith: phone.slice(-8) } },
     });
@@ -75,7 +81,61 @@ export class WhatsAppService {
       },
     });
 
+    // Auto-reply to client if enabled (once per hour per phone)
+    await this.maybeAutoReply(workshopId, phone);
+
     return { ok: true, routed: "inbox" };
+  }
+
+  private async maybeAutoReply(workshopId: string, phone: string): Promise<void> {
+    const workshop = await this.prisma.workshop.findUnique({
+      where: { id: workshopId },
+      select: { botAutoReply: true, botAutoReplyMsg: true },
+    });
+    if (!workshop?.botAutoReply) return;
+
+    // Rate-limit: skip if we sent an auto-reply in the last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentAutoReply = await this.prisma.message.findFirst({
+      where: {
+        workshopId,
+        phone,
+        direction: "OUTBOUND",
+        createdAt: { gte: oneHourAgo },
+      },
+    });
+    if (recentAutoReply) return;
+
+    const msg = workshop.botAutoReplyMsg ?? "¡Hola! 👋 Gracias por escribirnos. En breve te atendemos.";
+    await this.sendRaw(phone, msg);
+    await this.prisma.message.create({
+      data: { workshopId, phone, direction: "OUTBOUND", body: msg },
+    });
+  }
+
+  private async transcribeAudio(msgData: any): Promise<string | null> {
+    const apiKey = this.config.get<string>("GEMINI_API_KEY");
+    if (!apiKey) return null;
+    try {
+      const res = await axios.post(
+        `${this.evolutionUrl}/message/getBase64FromMediaMessage/${this.instance}`,
+        { message: msgData },
+        { headers: { apikey: this.evolutionKey }, timeout: 10000 },
+      );
+      const base64: string | undefined = res.data?.base64;
+      if (!base64) return null;
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent([
+        { inlineData: { data: base64, mimeType: "audio/ogg" } },
+        "Transcribí este audio en español rioplatense. Devolvé únicamente el texto transcripto, sin explicaciones ni formato.",
+      ]);
+      return result.response.text().trim() || null;
+    } catch (e: any) {
+      this.logger.warn(`Audio transcription failed: ${e.message}`);
+      return null;
+    }
   }
 
   async getConversations(workshopId: string) {
