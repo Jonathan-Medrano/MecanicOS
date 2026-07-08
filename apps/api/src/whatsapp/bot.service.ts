@@ -638,7 +638,7 @@ Ejemplos:
     }
     await this.prisma.workOrder.updateMany({
       where: { id: context.orderId, workshopId },
-      data: { mechanicNotes: text.trim() },
+      data: { mechanicNotes: text.trim().slice(0, 2000) },
     });
     await this.updateSession(workshopId, phone, "IDLE", null);
     return `✅ Nota guardada en *${context.orderLabel}*.\n\nEscribí *menu* para volver.`;
@@ -721,7 +721,7 @@ Ejemplos:
     const opts: string[] = [];
     if (permissions.includes(Permission.VIEW_ORDERS)) opts.push("orders_today");
     if (permissions.includes(Permission.CHANGE_ORDER_STATUS)) opts.push("order_status");
-    if (permissions.includes(Permission.EDIT_ORDERS)) opts.push("add_note");
+    if (permissions.includes(Permission.CHANGE_ORDER_STATUS)) opts.push("add_note");
     if (permissions.includes(Permission.VIEW_CLIENTS)) opts.push("client_search");
     return opts;
   }
