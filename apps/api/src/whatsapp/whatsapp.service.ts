@@ -139,40 +139,49 @@ export class WhatsAppService {
   }
 
   async getConversations(workshopId: string) {
-    const messages = await this.prisma.message.findMany({
-      where: { workshopId },
-      orderBy: { createdAt: "desc" },
-      include: { client: { select: { id: true, name: true } } },
-    });
-
-    const byPhone = new Map<
-      string,
+    // DISTINCT ON returns one row per phone (the most recent message).
+    // A lateral join counts unread INBOUND messages per phone.
+    // This avoids loading all messages into Node.js memory.
+    const rows = await this.prisma.$queryRaw<
       {
         phone: string;
-        client: { id: string; name: string } | null;
         lastMessage: string;
         lastAt: Date;
-        unread: number;
-      }
-    >();
+        clientId: string | null;
+        clientName: string | null;
+        unread: bigint;
+      }[]
+    >`
+      SELECT DISTINCT ON (m.phone)
+        m.phone,
+        m.body          AS "lastMessage",
+        m."createdAt"   AS "lastAt",
+        c.id            AS "clientId",
+        c.name          AS "clientName",
+        COALESCE(u.cnt, 0) AS unread
+      FROM messages m
+      LEFT JOIN clients c ON c.id = m."clientId"
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt
+        FROM messages u
+        WHERE u."workshopId" = m."workshopId"
+          AND u.phone       = m.phone
+          AND u.direction   = 'INBOUND'
+          AND u."readAt"    IS NULL
+      ) u ON true
+      WHERE m."workshopId" = ${workshopId}
+      ORDER BY m.phone, m."createdAt" DESC
+    `;
 
-    for (const m of messages) {
-      if (!byPhone.has(m.phone)) {
-        byPhone.set(m.phone, {
-          phone: m.phone,
-          client: m.client,
-          lastMessage: m.body,
-          lastAt: m.createdAt,
-          unread: 0,
-        });
-      }
-      const conv = byPhone.get(m.phone)!;
-      if (m.direction === "INBOUND" && !m.readAt) conv.unread++;
-    }
-
-    return Array.from(byPhone.values()).sort(
-      (a, b) => b.lastAt.getTime() - a.lastAt.getTime(),
-    );
+    return rows
+      .map((r) => ({
+        phone: r.phone,
+        client: r.clientId ? { id: r.clientId, name: r.clientName! } : null,
+        lastMessage: r.lastMessage,
+        lastAt: r.lastAt,
+        unread: Number(r.unread),
+      }))
+      .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime());
   }
 
   async getMessages(workshopId: string, phone: string) {

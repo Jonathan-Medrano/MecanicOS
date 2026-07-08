@@ -219,5 +219,6 @@ model Message {
   createdAt DateTime         @default(now())
 
   @@index([workshopId, phone])
+  @@index([workshopId, createdAt(sort: Desc)])
   @@map("messages")
 }

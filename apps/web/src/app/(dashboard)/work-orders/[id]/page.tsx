@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { ArrowLeft, FileDown, CalendarClock, Plus, Trash2, Pencil, Check, X, Bot, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { useState } from "react";
 import { usePermission } from "@/hooks/use-me";
@@ -318,6 +319,7 @@ export default function WorkOrderDetailPage() {
   const qc = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<WorkOrderItem | null>(null);
   const canEdit = usePermission("EDIT_ORDERS");
   const canChangeStatus = usePermission("CHANGE_ORDER_STATUS");
   const canNotify = usePermission("SEND_WHATSAPP");
@@ -584,7 +586,7 @@ export default function WorkOrderDetailPage() {
                 <ItemRow
                   key={item.id}
                   item={item}
-                  onDelete={canEdit ? () => deleteItemMutation.mutate(item.id) : () => {}}
+                  onDelete={canEdit ? () => setDeleteItem(item) : () => {}}
                   onUpdate={canEdit ? (data) => updateItemMutation.mutate({ itemId: item.id, data }) : () => {}}
                   readOnly={!canEdit}
                 />
@@ -623,6 +625,17 @@ export default function WorkOrderDetailPage() {
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar orden">
         <WorkOrderForm workOrder={order as any} onSuccess={() => { setEditOpen(false); qc.invalidateQueries({ queryKey: ["work-orders", id] }); }} />
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={() => {
+          if (deleteItem) deleteItemMutation.mutate(deleteItem.id, { onSettled: () => setDeleteItem(null) });
+        }}
+        title="Eliminar item"
+        description={deleteItem ? `"${deleteItem.description}" — Esta acción no se puede deshacer.` : undefined}
+        loading={deleteItemMutation.isPending}
+      />
     </div>
   );
 }

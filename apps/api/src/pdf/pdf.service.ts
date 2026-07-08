@@ -55,6 +55,12 @@ export class PdfService {
         .text(
           `Fecha: ${new Date(order.createdAt).toLocaleDateString("es-AR")}`,
           { align: "right" },
+        )
+        .text(
+          order.scheduledAt
+            ? `Turno: ${new Date(order.scheduledAt).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}`
+            : "",
+          { align: "right" },
         );
 
       doc.moveDown(1).moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#ddd").stroke();
