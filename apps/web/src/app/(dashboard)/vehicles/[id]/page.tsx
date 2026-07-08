@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, ExternalLink } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { relativeTime } from "@/lib/relative-time";
+import { usePermission } from "@/hooks/use-me";
 
 const STATUS: Record<string, { label: string; color: string }> = {
   PENDING:       { label: "Pendiente",        color: "bg-yellow-100 text-yellow-800" },
@@ -42,6 +43,7 @@ type VehicleDetail = {
 };
 
 export default function VehicleDetailPage() {
+  const canEditOrders = usePermission("EDIT_ORDERS");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
@@ -132,12 +134,14 @@ export default function VehicleDetailPage() {
             Historial de órdenes{" "}
             <span className="text-gray-400 font-normal">({vehicle.workOrders.length})</span>
           </h2>
-          <button
-            onClick={() => setNewOrderOpen(true)}
-            className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md hover:bg-blue-700"
-          >
-            <Plus size={12} /> Nueva orden
-          </button>
+          {canEditOrders && (
+            <button
+              onClick={() => setNewOrderOpen(true)}
+              className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md hover:bg-blue-700"
+            >
+              <Plus size={12} /> Nueva orden
+            </button>
+          )}
         </div>
 
         {vehicle.workOrders.length === 0 ? (
@@ -190,16 +194,18 @@ export default function VehicleDetailPage() {
         )}
       </section>
 
-      <Modal open={newOrderOpen} onClose={() => setNewOrderOpen(false)} title="Nueva orden de trabajo">
-        <WorkOrderForm
-          defaultClientId={vehicle.client.id}
-          defaultVehicleId={vehicle.id}
-          onSuccess={() => {
-            setNewOrderOpen(false);
-            qc.invalidateQueries({ queryKey: ["vehicles", id] });
-          }}
-        />
-      </Modal>
+      {canEditOrders && (
+        <Modal open={newOrderOpen} onClose={() => setNewOrderOpen(false)} title="Nueva orden de trabajo">
+          <WorkOrderForm
+            defaultClientId={vehicle.client.id}
+            defaultVehicleId={vehicle.id}
+            onSuccess={() => {
+              setNewOrderOpen(false);
+              qc.invalidateQueries({ queryKey: ["vehicles", id] });
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

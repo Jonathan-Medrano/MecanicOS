@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { relativeTime } from "@/lib/relative-time";
 import { useDebounce } from "@/hooks/use-debounce";
+import { usePermission } from "@/hooks/use-me";
 
 type WorkOrder = {
   id: string;
@@ -44,6 +45,8 @@ const STATUS_TABS = [
 ];
 
 function WorkOrdersInner() {
+  const canEdit = usePermission("EDIT_ORDERS");
+  const canChangeStatus = usePermission("CHANGE_ORDER_STATUS");
   const searchParams = useSearchParams();
   const router = useRouter();
   const qc = useQueryClient();
@@ -104,12 +107,14 @@ function WorkOrdersInner() {
             <p className="text-sm text-gray-500 mt-0.5">Filtradas por cliente</p>
           )}
         </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-        >
-          + Nueva orden
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+          >
+            + Nueva orden
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -188,43 +193,53 @@ function WorkOrdersInner() {
                   {relativeTime(o.createdAt)}
                 </span>
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); setEditTarget(o); }}
-                  className="shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
-                  title="Editar"
-                >
-                  <Pencil size={15} />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditTarget(o); }}
+                    className="shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
+                    title="Editar"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                )}
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!confirm(`¿Eliminar la orden "${o.description.slice(0, 40)}"?`)) return;
-                    deleteMutation.mutate(o.id);
-                  }}
-                  className="shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
-                  title="Eliminar"
-                >
-                  <Trash2 size={15} />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!confirm(`¿Eliminar la orden "${o.description.slice(0, 40)}"?`)) return;
+                      deleteMutation.mutate(o.id);
+                    }}
+                    className="shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
 
-                <select
-                  value={o.status}
-                  disabled={isChangingStatus}
-                  onChange={(e) => { e.stopPropagation(); statusMutation.mutate({ id: o.id, status: e.target.value }); }}
-                  onClick={(e) => e.stopPropagation()}
-                  className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer appearance-none pr-6 transition-opacity ${s.color} ${isChangingStatus ? "opacity-50" : ""}`}
-                  style={{
-                    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 0.25rem center",
-                    backgroundSize: "1rem",
-                  }}
-                >
-                  {Object.entries(STATUS).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
-                  ))}
-                </select>
+                {canChangeStatus ? (
+                  <select
+                    value={o.status}
+                    disabled={isChangingStatus}
+                    onChange={(e) => { e.stopPropagation(); statusMutation.mutate({ id: o.id, status: e.target.value }); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer appearance-none pr-6 transition-opacity ${s.color} ${isChangingStatus ? "opacity-50" : ""}`}
+                    style={{
+                      backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 0.25rem center",
+                      backgroundSize: "1rem",
+                    }}
+                  >
+                    {Object.entries(STATUS).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full ${s.color}`}>
+                    {s.label}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -236,21 +251,24 @@ function WorkOrdersInner() {
         </div>
       )}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nueva orden de trabajo">
-        <WorkOrderForm
-          onSuccess={() => {
-            setCreateOpen(false);
-            qc.invalidateQueries({ queryKey: ["work-orders"] });
-            qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
-          }}
-        />
-      </Modal>
-
-      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar orden">
-        {editTarget && (
-          <WorkOrderForm workOrder={editTarget} onSuccess={() => setEditTarget(null)} />
-        )}
-      </Modal>
+      {canEdit && (
+        <>
+          <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nueva orden de trabajo">
+            <WorkOrderForm
+              onSuccess={() => {
+                setCreateOpen(false);
+                qc.invalidateQueries({ queryKey: ["work-orders"] });
+                qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
+              }}
+            />
+          </Modal>
+          <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar orden">
+            {editTarget && (
+              <WorkOrderForm workOrder={editTarget} onSuccess={() => setEditTarget(null)} />
+            )}
+          </Modal>
+        </>
+      )}
     </div>
   );
 }
