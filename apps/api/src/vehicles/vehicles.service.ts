@@ -72,7 +72,7 @@ export class VehiclesService {
   async update(workshopId: string, id: string, dto: UpdateVehicleDto) {
     await this.findOne(workshopId, id);
     return this.prisma.vehicle.update({
-      where: { id },
+      where: { id, workshopId },
       data: dto,
       include: { client: { select: { id: true, name: true } } },
     });

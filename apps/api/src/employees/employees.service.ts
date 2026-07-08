@@ -42,7 +42,7 @@ export class EmployeesService {
 
   async update(workshopId: string, id: string, dto: UpdateEmployeeDto) {
     const existing = await this.findOne(workshopId, id);
-    const updated = await this.prisma.workshopEmployee.update({ where: { id }, data: dto });
+    const updated = await this.prisma.workshopEmployee.update({ where: { id, workshopId }, data: dto });
 
     if (dto.phone && dto.phone !== existing.phone) {
       const workshop = await this.prisma.workshop.findUnique({

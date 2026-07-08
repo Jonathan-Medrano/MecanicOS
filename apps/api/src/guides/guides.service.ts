@@ -37,7 +37,7 @@ export class GuidesService {
 
   async update(workshopId: string, id: string, dto: UpdateGuideDto) {
     await this.findOne(workshopId, id);
-    return this.prisma.technicalGuide.update({ where: { id }, data: dto });
+    return this.prisma.technicalGuide.update({ where: { id, workshopId }, data: dto });
   }
 
   async remove(workshopId: string, id: string) {

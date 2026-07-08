@@ -65,7 +65,7 @@ export class ClientsService {
 
   async update(workshopId: string, id: string, dto: UpdateClientDto) {
     await this.findOne(workshopId, id);
-    return this.prisma.client.update({ where: { id }, data: dto });
+    return this.prisma.client.update({ where: { id, workshopId }, data: dto });
   }
 
   async remove(workshopId: string, id: string) {

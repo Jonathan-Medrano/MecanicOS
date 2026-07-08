@@ -133,7 +133,7 @@ export class WorkOrdersService {
     }
 
     const updated = await this.prisma.workOrder.update({
-      where: { id },
+      where: { id, workshopId },
       data,
       include: {
         client: { select: { id: true, name: true, phone: true } },

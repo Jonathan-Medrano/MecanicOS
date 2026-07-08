@@ -27,8 +27,7 @@ export class DashboardService {
       inProgressOrders,
       todayOrders,
       recentOrders,
-      deliveredThisMonth,
-      doneThisMonth,
+      completedThisMonth,
     ] = await this.prisma.$transaction([
       this.prisma.client.count({ where: { workshopId } }),
       this.prisma.vehicle.count({ where: { workshopId } }),
@@ -62,16 +61,9 @@ export class DashboardService {
         },
         select: { finalCost: true, estimatedCost: true, items: { select: { quantity: true, unitPrice: true } } },
       }),
-      this.prisma.workOrder.count({
-        where: {
-          workshopId,
-          status: { in: ["DONE", "DELIVERED"] },
-          completedAt: { gte: monthStart },
-        },
-      }),
     ]);
 
-    const monthRevenue = deliveredThisMonth.reduce((sum, o) => {
+    const monthRevenue = completedThisMonth.reduce((sum, o) => {
       if (o.items.length > 0) {
         return sum + o.items.reduce((s, i) => s + Number(i.quantity) * Number(i.unitPrice), 0);
       }
@@ -87,7 +79,7 @@ export class DashboardService {
         inProgressOrders,
         todayOrders,
         monthRevenue,
-        doneThisMonth,
+        doneThisMonth: completedThisMonth.length,
       },
       recentOrders,
     };
