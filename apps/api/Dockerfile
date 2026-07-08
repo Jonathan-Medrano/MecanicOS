@@ -23,6 +23,8 @@ RUN npm install -g typescript@5.6.3 && cd packages/shared && tsc -p tsconfig.jso
 RUN pnpm --filter api build
 # Flatten pnpm symlinks into a self-contained deployment folder
 RUN pnpm --filter api deploy --prod --legacy /standalone
+# Re-generate Prisma client inside standalone (postinstall ran without schema during deploy)
+RUN cd /standalone && node_modules/.bin/prisma generate --schema=prisma/schema.prisma
 
 FROM node:22-alpine AS runner
 WORKDIR /app
