@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Req } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, Patch, Req } from "@nestjs/common";
 import { WorkshopsService } from "./workshops.service";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -24,7 +24,8 @@ export class WorkshopsController {
     @Req() req: any,
     @Body() dto: { name?: string; phone?: string; address?: string; botAutoReply?: boolean; botAutoReplyMsg?: string },
   ) {
-    const { workshopId } = req.auth;
+    const { workshopId, isOwner } = req.auth;
+    if (!isOwner) throw new ForbiddenException("Only the workshop owner can update settings");
     return this.workshopsService.update(workshopId, dto);
   }
 }

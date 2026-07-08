@@ -17,11 +17,14 @@ import {
   UpdateWorkOrderItemSchema,
 } from "@mecanico/shared";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
+import { Permissions } from "../common/decorators/permissions.decorator";
+import { Permission } from "../common/permissions";
 
 @Controller("work-orders")
 export class WorkOrdersController {
   constructor(private readonly workOrdersService: WorkOrdersService) {}
 
+  @Permissions(Permission.EDIT_ORDERS)
   @Post()
   create(
     @Req() req: any,
@@ -30,6 +33,7 @@ export class WorkOrdersController {
     return this.workOrdersService.create(req.auth.workshopId, dto as any);
   }
 
+  @Permissions(Permission.VIEW_ORDERS)
   @Get()
   findAll(
     @Req() req: any,
@@ -48,11 +52,13 @@ export class WorkOrdersController {
     });
   }
 
+  @Permissions(Permission.VIEW_ORDERS)
   @Get(":id")
   findOne(@Req() req: any, @Param("id") id: string) {
     return this.workOrdersService.findOne(req.auth.workshopId, id);
   }
 
+  @Permissions(Permission.CHANGE_ORDER_STATUS)
   @Patch(":id")
   update(
     @Req() req: any,
@@ -62,11 +68,13 @@ export class WorkOrdersController {
     return this.workOrdersService.update(req.auth.workshopId, id, dto as any);
   }
 
+  @Permissions(Permission.EDIT_ORDERS)
   @Delete(":id")
   remove(@Req() req: any, @Param("id") id: string) {
     return this.workOrdersService.remove(req.auth.workshopId, id);
   }
 
+  @Permissions(Permission.EDIT_ORDERS)
   @Post(":id/items")
   addItem(
     @Req() req: any,
@@ -76,6 +84,7 @@ export class WorkOrdersController {
     return this.workOrdersService.addItem(req.auth.workshopId, id, dto as any);
   }
 
+  @Permissions(Permission.EDIT_ORDERS)
   @Patch(":id/items/:itemId")
   updateItem(
     @Req() req: any,
@@ -86,6 +95,7 @@ export class WorkOrdersController {
     return this.workOrdersService.updateItem(req.auth.workshopId, id, itemId, dto as any);
   }
 
+  @Permissions(Permission.EDIT_ORDERS)
   @Delete(":id/items/:itemId")
   removeItem(
     @Req() req: any,
@@ -95,6 +105,7 @@ export class WorkOrdersController {
     return this.workOrdersService.removeItem(req.auth.workshopId, id, itemId);
   }
 
+  @Permissions(Permission.SEND_WHATSAPP)
   @Post(":id/notify")
   notifyClient(@Req() req: any, @Param("id") id: string) {
     return this.workOrdersService.notifyClient(req.auth.workshopId, id);
