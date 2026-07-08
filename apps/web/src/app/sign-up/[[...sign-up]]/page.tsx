@@ -8,8 +8,10 @@ import Link from "next/link";
 type Step = "register" | "verify";
 
 export default function SignUpPage() {
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp, fetchStatus } = useSignUp();
   const router = useRouter();
+
+  const isLoaded = fetchStatus !== "fetching";
 
   const [step, setStep] = useState<Step>("register");
   const [email, setEmail] = useState("");
@@ -29,11 +31,15 @@ export default function SignUpPage() {
     setLoading(true);
     setError("");
     try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      const { error: pwError } = await signUp.password({ emailAddress: email, password });
+      if (pwError) throw pwError;
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) throw sendError;
       setStep("verify");
     } catch (err: any) {
       const msg =
+        err?.longMessage ??
+        err?.message ??
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
         "Error al registrarse";
@@ -45,19 +51,19 @@ export default function SignUpPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!signUp || !setActive) return;
+    if (!signUp) return;
     setLoading(true);
     setError("");
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
-      } else {
-        setError("Error al verificar. Intentá de nuevo.");
-      }
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
+      if (verifyError) throw verifyError;
+      const { error: finalizeError } = await signUp.finalize();
+      if (finalizeError) throw finalizeError;
+      router.push("/dashboard");
     } catch (err: any) {
       const msg =
+        err?.longMessage ??
+        err?.message ??
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
         "Código incorrecto";
@@ -133,8 +139,9 @@ export default function SignUpPage() {
           <form onSubmit={handleVerify} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 shadow-sm">
             <div className="text-center">
               <p className="text-sm text-gray-700">
-                Te enviamos un código de verificación a <span className="font-medium">{email}</span>
+                Te enviamos un código a <span className="font-medium">{email}</span>
               </p>
+              <p className="text-xs text-gray-400 mt-1">En modo test podés usar el código <span className="font-mono font-bold">424242</span></p>
             </div>
 
             <div>
