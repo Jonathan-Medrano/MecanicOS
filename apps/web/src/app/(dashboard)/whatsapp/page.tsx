@@ -37,7 +37,7 @@ export default function WhatsAppPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
-  const { data: conversations } = useQuery<Conversation[]>({
+  const { data: conversations, isLoading: convsLoading } = useQuery<Conversation[]>({
     queryKey: ["wa-conversations"],
     queryFn: () => api.get("/whatsapp/conversations").then((r) => r.data),
     refetchInterval: 10_000,
@@ -126,7 +126,14 @@ export default function WhatsAppPage() {
         <p className="text-xs text-gray-400 mt-0.5">Mensajes de clientes</p>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {!conversations?.length && (
+        {convsLoading && (
+          <div className="space-y-px animate-pulse px-4 pt-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-[60px] bg-gray-100 rounded-lg mb-1" />
+            ))}
+          </div>
+        )}
+        {!convsLoading && !conversations?.length && (
           <p className="px-4 py-8 text-sm text-gray-400 text-center">Sin mensajes aún.</p>
         )}
         {conversations?.map((conv) => (

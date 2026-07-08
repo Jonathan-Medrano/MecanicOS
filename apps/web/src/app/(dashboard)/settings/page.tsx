@@ -28,8 +28,15 @@ export default function SettingsPage() {
   }, [me]);
 
   const mutation = useMutation({
-    mutationFn: (data: { name: string; phone: string; address: string; botAutoReply: boolean; botAutoReplyMsg: string }) =>
-      api.patch("/workshop/settings", data),
+    mutationFn: (data: { name: string; phone: string; address: string; botAutoReply: boolean; botAutoReplyMsg: string }) => {
+      const payload = {
+        ...data,
+        phone: data.phone || undefined,
+        address: data.address || undefined,
+        botAutoReplyMsg: data.botAutoReplyMsg || undefined,
+      };
+      return api.patch("/workshop/settings", payload);
+    },
     onSuccess: () => {
       toast.success("Configuración guardada");
       qc.invalidateQueries({ queryKey: ["me"] });
