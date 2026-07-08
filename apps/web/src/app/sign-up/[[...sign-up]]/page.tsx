@@ -21,6 +21,12 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  async function finalize() {
+    const { error: finalizeError } = await signUp!.finalize();
+    if (finalizeError) throw finalizeError;
+    router.push("/dashboard");
+  }
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     if (!signUp) return;
@@ -33,6 +39,13 @@ export default function SignUpPage() {
     try {
       const { error: pwError } = await signUp.password({ emailAddress: email, password });
       if (pwError) throw pwError;
+
+      // If the instance doesn't require email verification, sign-up is already complete
+      if (signUp.status === "complete") {
+        await finalize();
+        return;
+      }
+
       const { error: sendError } = await signUp.verifications.sendEmailCode();
       if (sendError) throw sendError;
       setStep("verify");
@@ -57,9 +70,14 @@ export default function SignUpPage() {
     try {
       const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
       if (verifyError) throw verifyError;
-      const { error: finalizeError } = await signUp.finalize();
-      if (finalizeError) throw finalizeError;
-      router.push("/dashboard");
+
+      if (signUp.status !== "complete") {
+        throw new Error(
+          `Verificación incompleta. Campos faltantes: ${signUp.missingFields.join(", ") || "desconocido"}`
+        );
+      }
+
+      await finalize();
     } catch (err: any) {
       const msg =
         err?.longMessage ??
