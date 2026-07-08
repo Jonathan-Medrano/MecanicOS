@@ -9,8 +9,38 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "TallerOS",
-  description: "Gestión inteligente para talleres mecánicos",
+  title: {
+    default: "TallerOS — Software de gestión para talleres mecánicos",
+    template: "%s | TallerOS",
+  },
+  description:
+    "Sistema de gestión para talleres mecánicos: órdenes de trabajo digitales, bot de WhatsApp para mecánicos y notificaciones automáticas a clientes. Probalo gratis.",
+  keywords: [
+    "software taller mecánico",
+    "gestión taller mecánico",
+    "sistema taller mecánico",
+    "app taller mecánico",
+    "ordenes de trabajo taller",
+  ],
+  authors: [{ name: "TallerOS" }],
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: "TallerOS",
+    title: "TallerOS — Software de gestión para talleres mecánicos",
+    description:
+      "Órdenes de trabajo digitales, bot de WhatsApp y asistente IA técnico. Todo lo que tu taller necesita para digitalizarse hoy.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TallerOS — Software de gestión para talleres mecánicos",
+    description:
+      "Órdenes de trabajo digitales, bot de WhatsApp y asistente IA técnico.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
