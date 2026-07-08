@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { WorkOrderForm } from "@/components/forms/work-order-form";
 import { useState } from "react";
+import { usePermission } from "@/hooks/use-me";
 
 const STATUS: Record<string, { label: string; color: string }> = {
   PENDING:       { label: "Pendiente",        color: "bg-yellow-100 text-yellow-800" },
@@ -50,10 +51,12 @@ function ItemRow({
   item,
   onDelete,
   onUpdate,
+  readOnly = false,
 }: {
   item: WorkOrderItem;
   onDelete: () => void;
   onUpdate: (data: Partial<WorkOrderItem>) => void;
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
@@ -78,14 +81,16 @@ function ItemRow({
         <td className="py-2 pr-3 text-sm text-gray-600 text-right tabular-nums">${Number(item.unitPrice).toLocaleString("es-AR")}</td>
         <td className="py-2 text-sm font-medium text-gray-900 text-right tabular-nums">${total.toLocaleString("es-AR")}</td>
         <td className="py-2 pl-3 w-14">
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-            <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-gray-600 p-1 rounded">
-              <Pencil size={12} />
-            </button>
-            <button onClick={onDelete} className="text-gray-400 hover:text-red-500 p-1 rounded">
-              <Trash2 size={12} />
-            </button>
-          </div>
+          {!readOnly && (
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+              <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-gray-600 p-1 rounded">
+                <Pencil size={12} />
+              </button>
+              <button onClick={onDelete} className="text-gray-400 hover:text-red-500 p-1 rounded">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          )}
         </td>
       </tr>
     );
@@ -245,6 +250,9 @@ export default function WorkOrderDetailPage() {
   const qc = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const canEdit = usePermission("EDIT_ORDERS");
+  const canChangeStatus = usePermission("CHANGE_ORDER_STATUS");
+  const canNotify = usePermission("SEND_WHATSAPP");
 
   async function downloadPdf() {
     setPdfLoading(true);
@@ -346,12 +354,14 @@ export default function WorkOrderDetailPage() {
           </p>
         </div>
         <div className="shrink-0 flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="text-xs border border-gray-300 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-50"
-          >
-            Editar
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => setEditOpen(true)}
+              className="text-xs border border-gray-300 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-50"
+            >
+              Editar
+            </button>
+          )}
           <button
             onClick={downloadPdf}
             disabled={pdfLoading}
@@ -366,23 +376,31 @@ export default function WorkOrderDetailPage() {
           >
             <Bot size={13} /> IA
           </Link>
-          <button
-            onClick={() => notifyMutation.mutate()}
-            disabled={notifyMutation.isPending || !order.client.phone}
-            title={order.client.phone ? "Enviar actualización por WhatsApp" : "Sin número de teléfono"}
-            className="flex items-center gap-1 text-xs border border-green-200 text-green-600 px-3 py-2 rounded-md hover:bg-green-50 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <MessageCircle size={13} /> WA
-          </button>
-          <select
-            value={order.status}
-            onChange={(e) => statusMutation.mutate(e.target.value)}
-            className={`text-xs font-medium px-3 py-2 rounded-full border-0 cursor-pointer appearance-none min-w-[100px] ${s.color}`}
-          >
-            {Object.entries(STATUS).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
+          {canNotify && (
+            <button
+              onClick={() => notifyMutation.mutate()}
+              disabled={notifyMutation.isPending || !order.client.phone}
+              title={order.client.phone ? "Enviar actualización por WhatsApp" : "Sin número de teléfono"}
+              className="flex items-center gap-1 text-xs border border-green-200 text-green-600 px-3 py-2 rounded-md hover:bg-green-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <MessageCircle size={13} /> WA
+            </button>
+          )}
+          {canChangeStatus ? (
+            <select
+              value={order.status}
+              onChange={(e) => statusMutation.mutate(e.target.value)}
+              className={`text-xs font-medium px-3 py-2 rounded-full border-0 cursor-pointer appearance-none min-w-[100px] ${s.color}`}
+            >
+              {Object.entries(STATUS).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+          ) : (
+            <span className={`text-xs font-medium px-3 py-2 rounded-full min-w-[100px] text-center ${s.color}`}>
+              {s.label}
+            </span>
+          )}
         </div>
       </div>
 
@@ -476,11 +494,12 @@ export default function WorkOrderDetailPage() {
                 <ItemRow
                   key={item.id}
                   item={item}
-                  onDelete={() => deleteItemMutation.mutate(item.id)}
-                  onUpdate={(data) => updateItemMutation.mutate({ itemId: item.id, data })}
+                  onDelete={canEdit ? () => deleteItemMutation.mutate(item.id) : () => {}}
+                  onUpdate={canEdit ? (data) => updateItemMutation.mutate({ itemId: item.id, data }) : () => {}}
+                  readOnly={!canEdit}
                 />
               ))}
-              <AddItemRow onAdd={(data) => addItemMutation.mutate(data)} />
+              {canEdit && <AddItemRow onAdd={(data) => addItemMutation.mutate(data)} />}
             </tbody>
           </table>
         </div>

@@ -80,12 +80,12 @@ export class VehiclesService {
 
   async remove(workshopId: string, id: string) {
     await this.findOne(workshopId, id);
-    const activeOrders = await this.prisma.workOrder.count({
-      where: { vehicleId: id, status: { notIn: ["DELIVERED", "CANCELLED"] } },
+    const totalOrders = await this.prisma.workOrder.count({
+      where: { vehicleId: id },
     });
-    if (activeOrders > 0) {
+    if (totalOrders > 0) {
       throw new ConflictException(
-        `El vehículo tiene ${activeOrders} orden(es) activa(s). Cerrala(s) antes de eliminarlo.`,
+        `El vehículo tiene órdenes de trabajo registradas y no puede eliminarse para preservar el historial.`,
       );
     }
     return this.prisma.vehicle.delete({ where: { id } });
