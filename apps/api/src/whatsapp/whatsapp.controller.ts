@@ -40,6 +40,7 @@ export class WhatsAppController {
     @Param("phone") phone: string,
     @Body() body: { clientId: string },
   ) {
+    if (!body?.clientId) throw new BadRequestException("clientId is required");
     return this.waService.classifyPhone(req.auth.workshopId, phone, body.clientId);
   }
 }

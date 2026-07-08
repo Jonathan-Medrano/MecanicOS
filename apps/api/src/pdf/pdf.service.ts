@@ -2,6 +2,15 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import PDFDocument from "pdfkit";
 import { PrismaService } from "../prisma/prisma.service";
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING:       "Pendiente",
+  IN_PROGRESS:   "En progreso",
+  WAITING_PARTS: "Esperando piezas",
+  DONE:          "Listo",
+  DELIVERED:     "Entregado",
+  CANCELLED:     "Cancelado",
+};
+
 @Injectable()
 export class PdfService {
   constructor(private readonly prisma: PrismaService) {}
@@ -218,7 +227,7 @@ export class PdfService {
         .font("Helvetica")
         .fontSize(9)
         .fillColor("#888")
-        .text(`Estado: ${order.status}`, 50, doc.y);
+        .text(`Estado: ${STATUS_LABELS[order.status] ?? order.status}`, 50, doc.y);
 
       // Footer
       doc
