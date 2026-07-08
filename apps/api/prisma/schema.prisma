@@ -103,6 +103,9 @@ model WorkOrder {
 
   items WorkOrderItem[]
 
+  @@index([workshopId])
+  @@index([workshopId, status])
+  @@index([workshopId, scheduledAt])
   @@map("work_orders")
 }
 
@@ -152,6 +155,7 @@ model TechnicalGuide {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([workshopId])
   @@map("technical_guides")
 }
 

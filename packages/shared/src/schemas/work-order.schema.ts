@@ -24,9 +24,12 @@ export const UpdateWorkOrderSchema = CreateWorkOrderSchema.partial().extend({
 });
 
 export const UpdateWorkOrderStatusSchema = z.object({
-  status: WorkOrderStatus,
+  status: WorkOrderStatus.optional(),
   mechanicNotes: z.string().max(2000).optional(),
-});
+}).refine(
+  (d) => d.status !== undefined || d.mechanicNotes !== undefined,
+  { message: "At least one field required" },
+);
 
 export type WorkOrderStatusType = z.infer<typeof WorkOrderStatus>;
 export type CreateWorkOrderDto = z.infer<typeof CreateWorkOrderSchema>;

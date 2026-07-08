@@ -244,6 +244,74 @@ function AddItemRow({ onAdd }: { onAdd: (data: ItemFormData) => void }) {
   );
 }
 
+function MechanicNotesEditor({
+  notes,
+  canEdit,
+  onSave,
+  isPending,
+}: {
+  notes?: string;
+  canEdit: boolean;
+  onSave: (notes: string) => void;
+  isPending: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(notes ?? "");
+
+  if (!canEdit && !notes) return null;
+
+  if (!editing) {
+    return (
+      <div className="border-t border-gray-100 pt-4">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Notas del mecánico</p>
+          {canEdit && (
+            <button
+              onClick={() => { setValue(notes ?? ""); setEditing(true); }}
+              className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+            >
+              <Pencil size={11} /> {notes ? "Editar" : "Agregar nota"}
+            </button>
+          )}
+        </div>
+        {notes ? (
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{notes}</p>
+        ) : (
+          <p className="text-sm text-gray-400 italic">Sin notas.</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-gray-100 pt-4">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Notas del mecánico</p>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={4}
+        placeholder="Ej: Se reemplazó la correa de distribución, próxima revisión en 10.000 km..."
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+      />
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => { onSave(value); setEditing(false); }}
+          disabled={isPending}
+          className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isPending ? "Guardando..." : "Guardar"}
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-50"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function WorkOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -285,6 +353,15 @@ export default function WorkOrderDetailPage() {
       qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
     },
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al cambiar estado"),
+  });
+
+  const notesMutation = useMutation({
+    mutationFn: (mechanicNotes: string) => api.patch(`/work-orders/${id}/status`, { mechanicNotes }),
+    onSuccess: () => {
+      toast.success("Nota guardada");
+      qc.invalidateQueries({ queryKey: ["work-orders", id] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al guardar nota"),
   });
 
   const addItemMutation = useMutation({
@@ -466,12 +543,12 @@ export default function WorkOrderDetailPage() {
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Descripción del trabajo</p>
           <p className="text-sm text-gray-900 whitespace-pre-wrap">{order.description}</p>
         </div>
-        {order.mechanicNotes && (
-          <div className="border-t border-gray-100 pt-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Notas del mecánico</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.mechanicNotes}</p>
-          </div>
-        )}
+        <MechanicNotesEditor
+          notes={order.mechanicNotes}
+          canEdit={canChangeStatus}
+          onSave={(notes) => notesMutation.mutate(notes)}
+          isPending={notesMutation.isPending}
+        />
       </div>
 
       {/* Presupuesto (items) */}
