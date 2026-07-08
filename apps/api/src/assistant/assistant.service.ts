@@ -6,18 +6,20 @@ import { AskAssistantDto } from "@mecanico/shared";
 
 @Injectable()
 export class AssistantService {
-  private readonly genai: GoogleGenerativeAI;
+  private readonly genai: GoogleGenerativeAI | null = null;
 
   constructor(
     private readonly config: ConfigService,
     private readonly guides: GuidesService,
   ) {
     const apiKey = this.config.get<string>("GEMINI_API_KEY");
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
-    this.genai = new GoogleGenerativeAI(apiKey);
+    if (apiKey) this.genai = new GoogleGenerativeAI(apiKey);
   }
 
   async ask(workshopId: string, dto: AskAssistantDto) {
+    if (!this.genai) {
+      throw new ServiceUnavailableException("AI assistant is not configured");
+    }
     const keywords = this.extractKeywords(dto.question, dto.vehicle);
     const relevantGuides = await this.guides.findRelevant(workshopId, keywords);
 
