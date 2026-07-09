@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ArrowLeft, FileDown, CalendarClock, Plus, Trash2, Pencil, Check, X, Bot, MessageCircle } from "lucide-react";
+import { ArrowLeft, FileDown, CalendarClock, Plus, Trash2, Pencil, Check, X, Bot, MessageCircle, BadgeDollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -21,6 +21,18 @@ const STATUS: Record<string, { label: string; color: string }> = {
   CANCELLED:     { label: "Cancelado",        color: "bg-red-100 text-red-800" },
 };
 
+const PAYMENT_STATUS: Record<string, { label: string; color: string }> = {
+  UNPAID:  { label: "Sin cobrar", color: "bg-red-100 text-red-700" },
+  PARTIAL: { label: "Pago parcial", color: "bg-orange-100 text-orange-700" },
+  PAID:    { label: "Cobrado", color: "bg-emerald-100 text-emerald-700" },
+};
+
+const PAYMENT_CYCLE: Record<string, string> = {
+  UNPAID: "PARTIAL",
+  PARTIAL: "PAID",
+  PAID: "UNPAID",
+};
+
 type WorkOrderItem = {
   id: string;
   type: "PART" | "LABOR";
@@ -32,6 +44,7 @@ type WorkOrderItem = {
 type WorkOrderDetail = {
   id: string;
   status: string;
+  paymentStatus: string;
   description: string;
   mechanicNotes?: string;
   estimatedCost?: number;
@@ -400,6 +413,17 @@ export default function WorkOrderDetailPage() {
     onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al enviar WhatsApp"),
   });
 
+  const paymentMutation = useMutation({
+    mutationFn: (paymentStatus: string) => api.patch(`/work-orders/${id}/status`, { paymentStatus }),
+    onSuccess: () => {
+      toast.success("Estado de pago actualizado");
+      qc.invalidateQueries({ queryKey: ["work-orders", id] });
+      qc.invalidateQueries({ queryKey: ["work-orders"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message ?? "Error al actualizar pago"),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4 max-w-3xl animate-pulse">
@@ -478,6 +502,20 @@ export default function WorkOrderDetailPage() {
               <MessageCircle size={13} /> WA
             </button>
           )}
+          {["DONE", "DELIVERED"].includes(order.status) && canEdit && (() => {
+            const ps = PAYMENT_STATUS[order.paymentStatus] ?? PAYMENT_STATUS.UNPAID;
+            const next = PAYMENT_CYCLE[order.paymentStatus] ?? "PAID";
+            return (
+              <button
+                onClick={() => paymentMutation.mutate(next)}
+                disabled={paymentMutation.isPending}
+                title={`Clic para marcar como ${PAYMENT_STATUS[next]?.label}`}
+                className={`flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-full cursor-pointer disabled:opacity-50 transition-opacity ${ps.color}`}
+              >
+                <BadgeDollarSign size={12} /> {ps.label}
+              </button>
+            );
+          })()}
           {canChangeStatus ? (
             <select
               value={order.status}

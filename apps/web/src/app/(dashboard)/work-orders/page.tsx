@@ -16,6 +16,7 @@ import { usePermission } from "@/hooks/use-me";
 type WorkOrder = {
   id: string;
   status: string;
+  paymentStatus: string;
   description: string;
   createdAt: string;
   scheduledAt?: string;
@@ -43,7 +44,14 @@ const STATUS_TABS = [
   { key: "WAITING_PARTS", label: "Esperando" },
   { key: "DONE", label: "Listas" },
   { key: "DELIVERED", label: "Entregadas" },
+  { key: "UNPAID", label: "Sin cobrar" },
 ];
+
+const PAYMENT_STATUS: Record<string, { label: string; color: string }> = {
+  UNPAID:  { label: "Sin cobrar", color: "bg-red-100 text-red-700" },
+  PARTIAL: { label: "Pago parcial", color: "bg-orange-100 text-orange-700" },
+  PAID:    { label: "Cobrado", color: "bg-emerald-100 text-emerald-700" },
+};
 
 function WorkOrdersInner() {
   const canEdit = usePermission("EDIT_ORDERS");
@@ -53,10 +61,20 @@ function WorkOrdersInner() {
   const qc = useQueryClient();
 
   const clientId = searchParams.get("clientId") ?? "";
-  const statusFilter = searchParams.get("status") ?? "";
+  const paymentFilterParam = searchParams.get("paymentStatus") ?? "";
+  const rawStatusFilter = searchParams.get("status") ?? "";
+  const statusFilter = paymentFilterParam ? "UNPAID" : rawStatusFilter;
   const setStatusFilter = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set("status", value); else params.delete("status");
+    params.delete("paymentStatus");
+    if (value === "UNPAID") {
+      params.set("paymentStatus", "UNPAID");
+      params.delete("status");
+    } else if (value) {
+      params.set("status", value);
+    } else {
+      params.delete("status");
+    }
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
@@ -67,13 +85,15 @@ function WorkOrdersInner() {
   const debouncedSearch = useDebounce(search, 300);
 
   const isToday = statusFilter === "TODAY";
+  const isUnpaid = statusFilter === "UNPAID";
 
   const { data: orders, isLoading, isError } = useQuery<WorkOrder[]>({
-    queryKey: ["work-orders", debouncedSearch, statusFilter, clientId],
+    queryKey: ["work-orders", debouncedSearch, statusFilter, clientId, paymentFilterParam],
     queryFn: () => {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (isToday) params.set("scheduledDate", "today");
+      else if (isUnpaid) params.set("paymentStatus", "UNPAID");
       else if (statusFilter) params.set("status", statusFilter);
       if (clientId) params.set("clientId", clientId);
       const qs = params.toString();
@@ -190,6 +210,15 @@ function WorkOrdersInner() {
                     )}
                   </p>
                 </button>
+
+                {["DONE", "DELIVERED"].includes(o.status) && (() => {
+                  const p = PAYMENT_STATUS[o.paymentStatus] ?? PAYMENT_STATUS.UNPAID;
+                  return (
+                    <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full hidden sm:inline-flex ${p.color}`}>
+                      {p.label}
+                    </span>
+                  );
+                })()}
 
                 {o.scheduledAt && (
                   <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-indigo-600 font-medium">

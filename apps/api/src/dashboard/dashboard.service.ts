@@ -19,6 +19,9 @@ export class DashboardService {
     monthStartAR.setUTCHours(0, 0, 0, 0);
     const monthStart = new Date(monthStartAR.getTime() + AR_OFFSET_MS);
 
+    const todayEnd = new Date(todayStart);
+    todayEnd.setUTCHours(todayEnd.getUTCHours() + 24);
+
     const [
       totalClients,
       totalVehicles,
@@ -26,6 +29,7 @@ export class DashboardService {
       pendingOrders,
       inProgressOrders,
       todayOrders,
+      unpaidOrders,
       recentOrders,
       completedThisMonth,
     ] = await this.prisma.$transaction([
@@ -37,7 +41,17 @@ export class DashboardService {
       this.prisma.workOrder.count({ where: { workshopId, status: "PENDING" } }),
       this.prisma.workOrder.count({ where: { workshopId, status: "IN_PROGRESS" } }),
       this.prisma.workOrder.count({
-        where: { workshopId, createdAt: { gte: todayStart } },
+        where: {
+          workshopId,
+          scheduledAt: { gte: todayStart, lt: todayEnd },
+        },
+      }),
+      this.prisma.workOrder.count({
+        where: {
+          workshopId,
+          status: { in: ["DONE", "DELIVERED"] },
+          paymentStatus: { not: "PAID" },
+        },
       }),
       this.prisma.workOrder.findMany({
         where: { workshopId, status: { notIn: ["DELIVERED", "CANCELLED"] } },
@@ -78,6 +92,7 @@ export class DashboardService {
         pendingOrders,
         inProgressOrders,
         todayOrders,
+        unpaidOrders,
         monthRevenue,
         doneThisMonth: completedThisMonth.length,
       },

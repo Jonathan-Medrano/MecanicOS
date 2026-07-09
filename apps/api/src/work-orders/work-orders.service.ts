@@ -37,7 +37,7 @@ export class WorkOrdersService {
 
   findAll(
     workshopId: string,
-    filters?: { clientId?: string; vehicleId?: string; status?: string; search?: string; scheduledDate?: string },
+    filters?: { clientId?: string; vehicleId?: string; status?: string; paymentStatus?: string; search?: string; scheduledDate?: string },
   ) {
     const search = filters?.search?.trim();
     let scheduledAtFilter: any = undefined;
@@ -59,6 +59,7 @@ export class WorkOrdersService {
         ...(filters?.clientId ? { clientId: filters.clientId } : {}),
         ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
         ...(filters?.status ? { status: filters.status as any } : {}),
+        ...(filters?.paymentStatus ? { paymentStatus: filters.paymentStatus as any } : {}),
         ...(scheduledAtFilter ?? {}),
         ...(search
           ? {

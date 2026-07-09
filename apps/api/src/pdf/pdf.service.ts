@@ -11,6 +11,12 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED:     "Cancelado",
 };
 
+const PAYMENT_LABELS: Record<string, string> = {
+  UNPAID:  "Sin cobrar",
+  PARTIAL: "Pago parcial",
+  PAID:    "Cobrado",
+};
+
 @Injectable()
 export class PdfService {
   constructor(private readonly prisma: PrismaService) {}
@@ -228,12 +234,13 @@ export class PdfService {
         }
       }
 
-      // Status label
+      // Status labels
       doc
         .font("Helvetica")
         .fontSize(9)
         .fillColor("#888")
-        .text(`Estado: ${STATUS_LABELS[order.status] ?? order.status}`, 50, doc.y);
+        .moveDown(1)
+        .text(`Estado: ${STATUS_LABELS[order.status] ?? order.status}  |  Pago: ${PAYMENT_LABELS[order.paymentStatus] ?? order.paymentStatus}`, 50, doc.y);
 
       // Footer
       doc

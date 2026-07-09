@@ -91,6 +91,7 @@ model WorkOrder {
   vehicle    Vehicle         @relation(fields: [vehicleId], references: [id])
 
   status        WorkOrderStatus @default(PENDING)
+  paymentStatus PaymentStatus   @default(UNPAID)
   description   String
   mechanicNotes String?
   estimatedCost Decimal?        @db.Decimal(10, 2)
@@ -138,6 +139,12 @@ enum WorkOrderStatus {
   DONE
   DELIVERED
   CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
 }
 
 // ─── Technical Guides ────────────────────────────────────────────────────────

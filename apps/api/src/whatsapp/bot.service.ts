@@ -467,17 +467,23 @@ Ejemplos:
     const startAR = new Date(nowAR);
     startAR.setUTCHours(0, 0, 0, 0);
     const start = new Date(startAR.getTime() + AR_OFFSET_MS);
+    const endAR = new Date(nowAR);
+    endAR.setUTCHours(23, 59, 59, 999);
+    const end = new Date(endAR.getTime() + AR_OFFSET_MS);
     const orders = await this.prisma.workOrder.findMany({
       where: {
         workshopId,
-        createdAt: { gte: start },
         status: { notIn: ["DELIVERED", "CANCELLED"] },
+        OR: [
+          { scheduledAt: { gte: start, lte: end } },
+          { createdAt: { gte: start } },
+        ],
       },
       include: {
         client: { select: { name: true } },
         vehicle: { select: { brand: true, model: true, plate: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
       take: 10,
     });
 

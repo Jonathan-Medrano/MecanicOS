@@ -35,6 +35,7 @@ type Overview = {
     pendingOrders: number;
     inProgressOrders: number;
     todayOrders: number;
+    unpaidOrders: number;
     monthRevenue: number;
     doneThisMonth: number;
   };
@@ -73,8 +74,8 @@ export default function DashboardPage() {
     { label: "Hoy",         value: stats?.todayOrders,      href: "/work-orders?status=TODAY", color: "text-indigo-600" },
     { label: "Pendientes",  value: stats?.pendingOrders,    href: "/work-orders?status=PENDING", color: "text-yellow-600" },
     { label: "En progreso", value: stats?.inProgressOrders, href: "/work-orders?status=IN_PROGRESS", color: "text-orange-600" },
+    { label: "Por cobrar",  value: stats?.unpaidOrders,     href: "/work-orders?paymentStatus=UNPAID", color: "text-red-600" },
     { label: "Clientes",    value: stats?.totalClients,     href: "/clients", color: "text-gray-700" },
-    { label: "Vehículos",   value: stats?.totalVehicles,    href: "/vehicles", color: "text-gray-700" },
   ];
 
   if (isError) {

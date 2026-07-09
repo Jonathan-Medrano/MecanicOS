@@ -9,6 +9,8 @@ export const WorkOrderStatus = z.enum([
   "CANCELLED",
 ]);
 
+export const PaymentStatus = z.enum(["UNPAID", "PARTIAL", "PAID"]);
+
 export const CreateWorkOrderSchema = z.object({
   vehicleId: z.string().uuid(),
   clientId: z.string().uuid(),
@@ -19,19 +21,22 @@ export const CreateWorkOrderSchema = z.object({
 
 export const UpdateWorkOrderSchema = CreateWorkOrderSchema.partial().extend({
   status: WorkOrderStatus.optional(),
+  paymentStatus: PaymentStatus.optional(),
   finalCost: z.number().positive().optional(),
   mechanicNotes: z.string().max(2000).optional(),
 });
 
 export const UpdateWorkOrderStatusSchema = z.object({
   status: WorkOrderStatus.optional(),
+  paymentStatus: PaymentStatus.optional(),
   mechanicNotes: z.string().max(2000).optional(),
 }).refine(
-  (d) => d.status !== undefined || d.mechanicNotes !== undefined,
+  (d) => d.status !== undefined || d.mechanicNotes !== undefined || d.paymentStatus !== undefined,
   { message: "At least one field required" },
 );
 
 export type WorkOrderStatusType = z.infer<typeof WorkOrderStatus>;
+export type PaymentStatusType = z.infer<typeof PaymentStatus>;
 export type CreateWorkOrderDto = z.infer<typeof CreateWorkOrderSchema>;
 export type UpdateWorkOrderDto = z.infer<typeof UpdateWorkOrderSchema>;
 

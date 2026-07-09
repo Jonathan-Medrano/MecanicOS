@@ -41,6 +41,7 @@ export class WorkOrdersController {
     @Query("clientId") clientId?: string,
     @Query("vehicleId") vehicleId?: string,
     @Query("status") status?: string,
+    @Query("paymentStatus") paymentStatus?: string,
     @Query("search") search?: string,
     @Query("scheduledDate") scheduledDate?: string,
   ) {
@@ -48,6 +49,7 @@ export class WorkOrdersController {
       clientId,
       vehicleId,
       status,
+      paymentStatus,
       search,
       scheduledDate,
     });
