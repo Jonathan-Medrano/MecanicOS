@@ -52,26 +52,30 @@ function WorkOrdersInner() {
   const router = useRouter();
   const qc = useQueryClient();
 
-  const initialStatus = searchParams.get("status") ?? "";
-  const initialClientId = searchParams.get("clientId") ?? "";
+  const clientId = searchParams.get("clientId") ?? "";
+  const statusFilter = searchParams.get("status") ?? "";
+  const setStatusFilter = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set("status", value); else params.delete("status");
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WorkOrder | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WorkOrder | null>(null);
-  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
   const isToday = statusFilter === "TODAY";
 
   const { data: orders, isLoading, isError } = useQuery<WorkOrder[]>({
-    queryKey: ["work-orders", debouncedSearch, statusFilter, initialClientId],
+    queryKey: ["work-orders", debouncedSearch, statusFilter, clientId],
     queryFn: () => {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (isToday) params.set("scheduledDate", "today");
       else if (statusFilter) params.set("status", statusFilter);
-      if (initialClientId) params.set("clientId", initialClientId);
+      if (clientId) params.set("clientId", clientId);
       const qs = params.toString();
       return api.get(`/work-orders${qs ? `?${qs}` : ""}`).then((r) => r.data);
     },
@@ -105,7 +109,7 @@ function WorkOrdersInner() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Órdenes de trabajo</h1>
-          {initialClientId && (
+          {clientId && (
             <p className="text-sm text-gray-500 mt-0.5">Filtradas por cliente</p>
           )}
         </div>
@@ -167,7 +171,7 @@ function WorkOrdersInner() {
         <div className="space-y-2">
           {filtered?.map((o) => {
             const s = STATUS[o.status] ?? { label: o.status, color: "bg-gray-100 text-gray-700" };
-            const isChangingStatus = statusMutation.isPending && (statusMutation.variables as any)?.id === o.id;
+            const isChangingStatus = statusMutation.isPending && statusMutation.variables?.id === o.id;
             return (
               <div
                 key={o.id}

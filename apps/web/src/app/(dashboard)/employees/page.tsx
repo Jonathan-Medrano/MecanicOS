@@ -49,8 +49,9 @@ function EmployeeForm({ employee, onSuccess }: { employee?: Employee; onSuccess:
   );
   const [error, setError] = useState("");
 
+  type EmployeePayload = { name: string; email: string; phone?: string; permissions: string[] };
   const mutation = useMutation({
-    mutationFn: (data: any) =>
+    mutationFn: (data: EmployeePayload) =>
       isEdit ? api.patch(`/employees/${employee.id}`, data) : api.post("/employees", data),
     onSuccess: () => {
       toast.success(isEdit ? "Empleado actualizado" : "Empleado agregado");

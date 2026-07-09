@@ -132,8 +132,11 @@ export default function ClientDetailPage() {
                 {client.vehicles.map((v) => (
                   <tr
                     key={v.id}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-gray-50 cursor-pointer focus-within:bg-gray-50"
                     onClick={() => router.push(`/vehicles/${v.id}`)}
+                    onKeyDown={(e) => e.key === "Enter" && router.push(`/vehicles/${v.id}`)}
+                    role="button"
+                    tabIndex={0}
                   >
                     <td className="px-4 py-2.5 text-sm font-medium text-blue-600">
                       {v.brand} {v.model}
@@ -194,8 +197,11 @@ export default function ClientDetailPage() {
                   return (
                     <tr
                       key={o.id}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="hover:bg-gray-50 cursor-pointer focus-within:bg-gray-50"
                       onClick={() => router.push(`/work-orders/${o.id}`)}
+                      onKeyDown={(e) => e.key === "Enter" && router.push(`/work-orders/${o.id}`)}
+                      role="button"
+                      tabIndex={0}
                     >
                       <td className="px-4 py-2.5 text-sm text-gray-900 max-w-[200px]">
                         <p className="truncate">{o.description}</p>

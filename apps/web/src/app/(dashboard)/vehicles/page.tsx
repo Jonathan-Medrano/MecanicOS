@@ -97,7 +97,14 @@ export default function VehiclesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {vehicles?.map((v) => (
-                <tr key={v.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/vehicles/${v.id}`)}>
+                <tr
+                  key={v.id}
+                  className="hover:bg-gray-50 cursor-pointer focus-within:bg-gray-50"
+                  onClick={() => router.push(`/vehicles/${v.id}`)}
+                  onKeyDown={(e) => e.key === "Enter" && router.push(`/vehicles/${v.id}`)}
+                  role="button"
+                  tabIndex={0}
+                >
                   <td className="px-4 py-3 text-sm">
                     <p className="font-medium text-gray-900">{v.brand} {v.model}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
