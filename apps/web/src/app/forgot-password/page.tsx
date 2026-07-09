@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useClerk } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,9 @@ const inputClass =
 type Step = "request" | "verify";
 
 export default function ForgotPasswordPage() {
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const { signIn, fetchStatus } = useSignIn();
+  const { setActive } = useClerk();
+  const isLoaded = fetchStatus !== "fetching";
   const router = useRouter();
 
   const [step, setStep]               = useState<Step>("request");

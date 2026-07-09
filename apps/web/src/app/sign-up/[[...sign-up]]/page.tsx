@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useClerk } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,9 @@ const inputClass =
 type Step = "register" | "verify";
 
 export default function SignUpPage() {
-  const { isLoaded, signUp, setActive } = useSignUp();
+  const { signUp } = useSignUp();
+  const { setActive } = useClerk();
+  const isLoaded = !!signUp;
   const router = useRouter();
 
   const [step, setStep]         = useState<Step>("register");
