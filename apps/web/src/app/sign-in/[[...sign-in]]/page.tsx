@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignIn, useClerk } from "@clerk/nextjs";
+import { useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,9 +11,7 @@ const inputClass =
   "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
 
 export default function SignInPage() {
-  const { signIn } = useSignIn();
-  const { setActive } = useClerk();
-  const isLoaded = !!signIn;
+  const { signIn, fetchStatus } = useSignIn();
   const router = useRouter();
 
   const [email, setEmail]       = useState("");
@@ -22,26 +20,30 @@ export default function SignInPage() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
+  const isLoaded = fetchStatus !== "fetching";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!signIn) return;
     setLoading(true);
     setError("");
     try {
-      const result = await signIn.create({ identifier: email, password });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
+      const { error: signInError } = await signIn.password({ identifier: email, password });
+      if (signInError) {
+        setError(signInError.longMessage ?? signInError.message);
+        return;
+      }
+      if (signIn.status === "complete") {
+        const { error: finalizeError } = await signIn.finalize();
+        if (finalizeError) {
+          setError(finalizeError.longMessage ?? finalizeError.message);
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError("Se requiere un paso adicional de verificación.");
       }
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "Email o contraseña incorrectos",
-      );
+    } catch {
+      setError("Error inesperado. Intentá de nuevo.");
     } finally {
       setLoading(false);
     }

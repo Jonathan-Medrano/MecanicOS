@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignIn, useClerk } from "@clerk/nextjs";
+import { useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,9 +13,7 @@ const inputClass =
 type Step = "request" | "verify";
 
 export default function ForgotPasswordPage() {
-  const { signIn } = useSignIn();
-  const { setActive } = useClerk();
-  const isLoaded = !!signIn;
+  const { signIn, fetchStatus } = useSignIn();
   const router = useRouter();
 
   const [step, setStep]               = useState<Step>("request");
@@ -26,24 +24,26 @@ export default function ForgotPasswordPage() {
   const [error, setError]             = useState("");
   const [loading, setLoading]         = useState(false);
 
+  const isLoaded = fetchStatus !== "fetching";
+
   async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError("");
     try {
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: email,
-      });
-      setStep("verify");
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "Error al enviar el código",
-      );
+      const { error: createError } = await signIn.create({ identifier: email });
+      if (createError) {
+        setError(createError.longMessage ?? createError.message);
+        return;
+      }
+      const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode();
+      if (sendError) {
+        setError(sendError.longMessage ?? sendError.message);
+      } else {
+        setStep("verify");
+      }
+    } catch {
+      setError("Error inesperado. Intentá de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -51,28 +51,33 @@ export default function ForgotPasswordPage() {
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError("");
     try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: "reset_password_email_code",
-        code,
+      const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code });
+      if (verifyError) {
+        setError(verifyError.longMessage ?? verifyError.message);
+        return;
+      }
+      const { error: resetError } = await signIn.resetPasswordEmailCode.submitPassword({
         password: newPassword,
       });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
+      if (resetError) {
+        setError(resetError.longMessage ?? resetError.message);
+        return;
+      }
+      if (signIn.status === "complete") {
+        const { error: finalizeError } = await signIn.finalize();
+        if (finalizeError) {
+          setError(finalizeError.longMessage ?? finalizeError.message);
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError("No se pudo completar el restablecimiento. Intentá de nuevo.");
       }
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "Código o contraseña inválidos",
-      );
+    } catch {
+      setError("Error inesperado. Intentá de nuevo.");
     } finally {
       setLoading(false);
     }

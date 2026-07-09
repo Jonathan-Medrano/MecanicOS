@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignUp, useClerk } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,9 +13,7 @@ const inputClass =
 type Step = "register" | "verify";
 
 export default function SignUpPage() {
-  const { signUp } = useSignUp();
-  const { setActive } = useClerk();
-  const isLoaded = !!signUp;
+  const { signUp, fetchStatus } = useSignUp();
   const router = useRouter();
 
   const [step, setStep]         = useState<Step>("register");
@@ -27,23 +25,27 @@ export default function SignUpPage() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
+  const isLoaded = fetchStatus !== "fetching";
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signUp) return;
     if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
     setLoading(true);
     setError("");
     try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setStep("verify");
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "Error al registrarse",
-      );
+      const { error: createError } = await signUp.password({ emailAddress: email, password });
+      if (createError) {
+        setError(createError.longMessage ?? createError.message);
+        return;
+      }
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) {
+        setError(sendError.longMessage ?? sendError.message);
+      } else {
+        setStep("verify");
+      }
+    } catch {
+      setError("Error inesperado. Intentá de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -51,24 +53,26 @@ export default function SignUpPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signUp) return;
     setLoading(true);
     setError("");
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
+      if (verifyError) {
+        setError(verifyError.longMessage ?? verifyError.message);
+        return;
+      }
+      if (signUp.status === "complete") {
+        const { error: finalizeError } = await signUp.finalize();
+        if (finalizeError) {
+          setError(finalizeError.longMessage ?? finalizeError.message);
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError("Verificación incompleta. Intentá de nuevo.");
       }
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "Código incorrecto",
-      );
+    } catch {
+      setError("Error inesperado. Intentá de nuevo.");
     } finally {
       setLoading(false);
     }
