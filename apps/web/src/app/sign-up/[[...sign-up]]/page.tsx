@@ -3,17 +3,18 @@
 import { useSignUp } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 
 const inputClass =
-  "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
+  "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
 
 type Step = "register" | "verify";
 
 export default function SignUpPage() {
-  const { signUp, fetchStatus } = useSignUp();
-  const isLoaded = fetchStatus !== "fetching";
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const router = useRouter();
 
   const [step, setStep]         = useState<Step>("register");
   const [email, setEmail]       = useState("");
@@ -24,29 +25,21 @@ export default function SignUpPage() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
-  async function finalize() {
-    const { error: finalizeError } = await signUp!.finalize();
-    if (finalizeError) throw finalizeError;
-    window.location.href = "/dashboard";
-  }
-
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!signUp) return;
+    if (!isLoaded || !signUp) return;
     if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
     setLoading(true);
     setError("");
     try {
-      const { error: pwError } = await signUp.password({ emailAddress: email, password });
-      if (pwError) throw pwError;
-      if (signUp.status === "complete") { await finalize(); return; }
-      const { error: sendError } = await signUp.verifications.sendEmailCode();
-      if (sendError) throw sendError;
+      await signUp.create({ emailAddress: email, password });
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setStep("verify");
     } catch (err: any) {
       setError(
-        err?.longMessage ?? err?.message ??
-        err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ??
+        err?.errors?.[0]?.longMessage ??
+        err?.errors?.[0]?.message ??
+        err?.message ??
         "Error al registrarse",
       );
     } finally {
@@ -56,20 +49,22 @@ export default function SignUpPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!signUp) return;
+    if (!isLoaded || !signUp) return;
     setLoading(true);
     setError("");
     try {
-      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
-      if (verifyError) throw verifyError;
-      if (signUp.status !== "complete") {
-        throw new Error(`Verificación incompleta: ${signUp.missingFields.join(", ") || "desconocido"}`);
+      const result = await signUp.attemptEmailAddressVerification({ code });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push("/dashboard");
+      } else {
+        setError("Verificación incompleta. Intentá de nuevo.");
       }
-      await finalize();
     } catch (err: any) {
       setError(
-        err?.longMessage ?? err?.message ??
-        err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ??
+        err?.errors?.[0]?.longMessage ??
+        err?.errors?.[0]?.message ??
+        err?.message ??
         "Código incorrecto",
       );
     } finally {
@@ -115,10 +110,6 @@ export default function SignUpPage() {
               className={`${inputClass} text-center tracking-[0.4em] text-xl font-mono`}
               placeholder="000000"
             />
-            <p className="text-xs text-gray-400 mt-1.5 text-center">
-              En modo test podés usar el código{" "}
-              <span className="font-mono font-semibold text-gray-600">424242</span>
-            </p>
           </div>
 
           {ErrorBanner}

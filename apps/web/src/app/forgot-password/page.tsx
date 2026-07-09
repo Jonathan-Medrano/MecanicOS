@@ -3,17 +3,18 @@
 import { useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, KeyRound } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 
 const inputClass =
-  "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
+  "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
 
 type Step = "request" | "verify";
 
 export default function ForgotPasswordPage() {
-  const { signIn, fetchStatus } = useSignIn();
-  const isLoaded = fetchStatus !== "fetching";
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const router = useRouter();
 
   const [step, setStep]               = useState<Step>("request");
   const [email, setEmail]             = useState("");
@@ -25,18 +26,20 @@ export default function ForgotPasswordPage() {
 
   async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
-    if (!signIn) return;
+    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError("");
     try {
-      await signIn.create({ identifier: email });
-      const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode();
-      if (sendError) throw sendError;
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
       setStep("verify");
     } catch (err: any) {
       setError(
-        err?.longMessage ?? err?.message ??
-        err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ??
+        err?.errors?.[0]?.longMessage ??
+        err?.errors?.[0]?.message ??
+        err?.message ??
         "Error al enviar el código",
       );
     } finally {
@@ -46,20 +49,26 @@ export default function ForgotPasswordPage() {
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
-    if (!signIn) return;
+    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError("");
     try {
-      const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code });
-      if (verifyError) throw verifyError;
-      const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({ password: newPassword });
-      if (submitError) throw submitError;
-      await signIn.finalize();
-      window.location.href = "/dashboard";
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code,
+        password: newPassword,
+      });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push("/dashboard");
+      } else {
+        setError("No se pudo completar el restablecimiento. Intentá de nuevo.");
+      }
     } catch (err: any) {
       setError(
-        err?.longMessage ?? err?.message ??
-        err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ??
+        err?.errors?.[0]?.longMessage ??
+        err?.errors?.[0]?.message ??
+        err?.message ??
         "Código o contraseña inválidos",
       );
     } finally {

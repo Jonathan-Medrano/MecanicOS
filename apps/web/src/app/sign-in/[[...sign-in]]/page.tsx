@@ -3,15 +3,16 @@
 import { useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 
 const inputClass =
-  "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
+  "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
 
 export default function SignInPage() {
-  const { signIn, fetchStatus } = useSignIn();
-  const isLoaded = fetchStatus !== "fetching";
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const router = useRouter();
 
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -21,22 +22,23 @@ export default function SignInPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!signIn) return;
+    if (!isLoaded || !signIn) return;
     setLoading(true);
     setError("");
     try {
-      const { error: pwError } = await signIn.password({ emailAddress: email, password });
-      if (pwError) throw pwError;
-      const { error: finalizeError } = await signIn.finalize();
-      if (finalizeError) throw finalizeError;
-      window.location.href = "/dashboard";
+      const result = await signIn.create({ identifier: email, password });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push("/dashboard");
+      } else {
+        setError("Se requiere un paso adicional de verificación.");
+      }
     } catch (err: any) {
       setError(
-        err?.longMessage ??
-        err?.message ??
         err?.errors?.[0]?.longMessage ??
         err?.errors?.[0]?.message ??
-        "Error al iniciar sesión",
+        err?.message ??
+        "Email o contraseña incorrectos",
       );
     } finally {
       setLoading(false);
