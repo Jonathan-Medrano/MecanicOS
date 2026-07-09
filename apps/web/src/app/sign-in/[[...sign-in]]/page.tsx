@@ -11,9 +11,9 @@ const inputClass =
   "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder:text-gray-400";
 
 export default function SignInPage() {
-  const { signIn, fetchStatus } = useSignIn();
+  const { signIn } = useSignIn();
   const { setActive } = useClerk();
-  const isLoaded = fetchStatus !== "fetching";
+  const isLoaded = !!signIn;
   const router = useRouter();
 
   const [email, setEmail]       = useState("");

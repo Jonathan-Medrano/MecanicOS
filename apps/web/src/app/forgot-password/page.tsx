@@ -13,9 +13,9 @@ const inputClass =
 type Step = "request" | "verify";
 
 export default function ForgotPasswordPage() {
-  const { signIn, fetchStatus } = useSignIn();
+  const { signIn } = useSignIn();
   const { setActive } = useClerk();
-  const isLoaded = fetchStatus !== "fetching";
+  const isLoaded = !!signIn;
   const router = useRouter();
 
   const [step, setStep]               = useState<Step>("request");
