@@ -159,7 +159,7 @@ export default function WhatsAppPage() {
             <p className="text-xs text-gray-400 mt-0.5">{conv.phone}</p>
             <div className="flex items-center justify-between mt-0.5">
               <p className="text-xs text-gray-400 truncate flex-1 mr-2">{conv.lastMessage}</p>
-              <p className="text-xs text-gray-300 shrink-0">{relativeTime(conv.lastAt)}</p>
+              <p className="text-xs text-gray-500 shrink-0">{relativeTime(conv.lastAt)}</p>
             </div>
           </button>
         ))}
@@ -251,7 +251,7 @@ export default function WhatsAppPage() {
                   <p className="whitespace-pre-wrap break-words">{m.body}</p>
                   <p
                     className={`text-xs mt-1 ${
-                      m.direction === "OUTBOUND" ? "text-blue-200" : "text-gray-400"
+                      m.direction === "OUTBOUND" ? "text-blue-100" : "text-gray-400"
                     }`}
                   >
                     {new Date(m.createdAt).toLocaleTimeString("es-AR", {

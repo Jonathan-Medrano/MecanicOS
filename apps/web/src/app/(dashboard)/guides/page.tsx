@@ -153,7 +153,7 @@ function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
           {canEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
-              className="text-gray-300 hover:text-red-500 p-1 rounded transition-colors"
+              className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors"
             >
               <Trash2 size={14} />
             </button>
