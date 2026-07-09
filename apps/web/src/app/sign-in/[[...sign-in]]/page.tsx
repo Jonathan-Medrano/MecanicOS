@@ -40,7 +40,7 @@ export default function SignInPage() {
           router.push("/dashboard");
         }
       } else {
-        setError("Se requiere un paso adicional de verificación.");
+        setError(`Paso adicional requerido — status: ${signIn.status}`);
       }
     } catch {
       setError("Error inesperado. Intentá de nuevo.");
