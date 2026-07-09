@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: talleros-api
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: WEB_URL
+        value: https://mecanico-nu.vercel.app
+      - key: NODE_ENV
+        value: production
