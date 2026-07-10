@@ -11,7 +11,12 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    return <div className={`h-6 w-11 rounded-full bg-gray-200 dark:bg-gray-700 ${className}`} aria-hidden="true" />;
+    return (
+      <div
+        className={`h-6 w-11 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 shrink-0 ${className}`}
+        aria-hidden="true"
+      />
+    );
   }
 
   const isDark = resolvedTheme === "dark";
@@ -24,10 +29,15 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       aria-checked={isDark}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${isDark ? "bg-indigo-600" : "bg-gray-300"} ${className}`}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${isDark ? "bg-indigo-600" : "bg-gray-600"} ${className}`}
+      style={{ transition: "background-color 0.2s ease" }}
     >
       <span
-        className={`flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white shadow-sm transition-transform duration-200 ${isDark ? "translate-x-[22px]" : "translate-x-[2px]"}`}
+        className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white shadow-sm shrink-0"
+        style={{
+          transform: isDark ? "translateX(22px)" : "translateX(2px)",
+          transition: "transform 0.2s ease",
+        }}
       >
         {isDark ? (
           <Moon size={10} className="text-indigo-600" />
