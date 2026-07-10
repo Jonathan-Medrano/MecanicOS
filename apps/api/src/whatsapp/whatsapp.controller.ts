@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { Throttle } from "@nestjs/throttler";
 import { WhatsAppService } from "./whatsapp.service";
 import { Public } from "../common/decorators/public.decorator";
 import { Permissions } from "../common/decorators/permissions.decorator";
@@ -24,6 +25,7 @@ export class WhatsAppController {
   ) {}
 
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Post("webhook/:workshopId")
   webhook(
     @Param("workshopId") workshopId: string,
@@ -31,6 +33,11 @@ export class WhatsAppController {
     @Headers("apikey") apikey?: string,
   ) {
     const secret = this.config.get<string>("EVOLUTION_WEBHOOK_SECRET");
+    const isProduction = this.config.get("NODE_ENV") === "production";
+
+    if (isProduction && !secret) {
+      throw new UnauthorizedException("Webhook not configured");
+    }
     if (secret && apikey !== secret) {
       throw new UnauthorizedException("Invalid webhook token");
     }

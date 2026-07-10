@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { PrismaModule } from "./prisma/prisma.module";
 import { WorkshopsModule } from "./workshops/workshops.module";
 import { ClientsModule } from "./clients/clients.module";
@@ -24,6 +25,13 @@ import { PermissionsGuard } from "./common/guards/permissions.guard";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([
+      {
+        name: "default",
+        ttl: 60000,
+        limit: 60,
+      },
+    ]),
     PrismaModule,
     WorkshopsModule,
     ClientsModule,
@@ -43,6 +51,7 @@ import { PermissionsGuard } from "./common/guards/permissions.guard";
     ProcessesModule,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: ClerkAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
   ],

@@ -120,6 +120,8 @@ model WorkOrder {
   @@index([workshopId])
   @@index([workshopId, status])
   @@index([workshopId, scheduledAt])
+  @@index([clientId])
+  @@index([vehicleId])
   @@map("work_orders")
 }
 
