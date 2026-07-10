@@ -17,6 +17,7 @@ import { HealthModule } from "./health/health.module";
 import { TrackModule } from "./track/track.module";
 import { PartsModule } from "./parts/parts.module";
 import { RemindersModule } from "./reminders/reminders.module";
+import { ProcessesModule } from "./processes/processes.module";
 import { ClerkAuthGuard } from "./common/guards/clerk-auth.guard";
 import { PermissionsGuard } from "./common/guards/permissions.guard";
 
@@ -39,6 +40,7 @@ import { PermissionsGuard } from "./common/guards/permissions.guard";
     TrackModule,
     PartsModule,
     RemindersModule,
+    ProcessesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ClerkAuthGuard },

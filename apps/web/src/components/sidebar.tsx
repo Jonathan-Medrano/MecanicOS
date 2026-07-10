@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import { LayoutDashboard, Users, Car, ClipboardList, MessageCircle, UserCog, Settings, X, BookOpen, Bot, CalendarDays, Package, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, Car, ClipboardList, MessageCircle, UserCog, Settings, X, BookOpen, Bot, CalendarDays, Package, BarChart3, Layers } from "lucide-react";
 import { useMe } from "@/hooks/use-me";
 import { useUnreadCount } from "@/hooks/use-unread-count";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -26,6 +26,7 @@ const NAV: NavItem[] = [
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, permission: "VIEW_WHATSAPP" },
   { href: "/assistant", label: "Asistente IA", icon: Bot, permission: "VIEW_ORDERS" },
   { href: "/guides", label: "Guías técnicas", icon: BookOpen, permission: "VIEW_ORDERS" },
+  { href: "/processes", label: "Procesos", icon: Layers, permission: "VIEW_ORDERS" },
   { href: "/inventory", label: "Inventario", icon: Package, permission: "VIEW_ORDERS" },
   { href: "/reports", label: "Reportes", icon: BarChart3, permission: "VIEW_ORDERS" },
   { href: "/employees", label: "Empleados", icon: UserCog, permission: "MANAGE_EMPLOYEES" },

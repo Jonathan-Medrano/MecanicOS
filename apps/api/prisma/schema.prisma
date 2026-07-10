@@ -32,6 +32,7 @@ model Workshop {
   technicalGuides  TechnicalGuide[]
   payments         Payment[]
   parts            Part[]
+  processes        Process[]
 
   @@map("workshops")
 }
@@ -290,4 +291,58 @@ model Part {
 
   @@index([workshopId])
   @@map("parts")
+}
+
+// ─── Intelligent Processes ────────────────────────────────────────────────────
+
+model Process {
+  id         String   @id @default(uuid())
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  name             String
+  description      String?
+  category         String?
+  estimatedMinutes Int?
+
+  steps     ProcessStep[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workshopId])
+  @@map("processes")
+}
+
+model ProcessStep {
+  id        String  @id @default(uuid())
+  processId String
+  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  order           Int
+  title           String
+  description     String?
+  durationMinutes Int?
+
+  tools StepTool[]
+
+  @@map("process_steps")
+}
+
+model StepTool {
+  id     String      @id @default(uuid())
+  stepId String
+  step   ProcessStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  name     String
+  type     StepToolType
+  quantity Int          @default(1)
+
+  @@map("step_tools")
+}
+
+enum StepToolType {
+  TOOL
+  PART
+  FLUID
 }
