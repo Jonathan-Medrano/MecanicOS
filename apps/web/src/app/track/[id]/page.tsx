@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { CalendarClock, Car, Wrench, DollarSign, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { CalendarClock, Car, Wrench, DollarSign, CheckCircle2, Clock, AlertCircle, ThumbsUp } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api";
 
@@ -22,6 +23,7 @@ type TrackingOrder = {
   scheduledAt?: string;
   estimatedCost?: number;
   finalCost?: number;
+  budgetApproved: boolean;
   createdAt: string;
   completedAt?: string;
 };
@@ -126,6 +128,8 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function TrackOrderPage() {
   const { id } = useParams<{ id: string }>();
+  const [approving, setApproving] = useState(false);
+  const [approved, setApproved] = useState<boolean | null>(null);
 
   const { data: order, isLoading, isError } = useQuery<TrackingOrder>({
     queryKey: ["track", id],
@@ -159,6 +163,18 @@ export default function TrackOrderPage() {
 
   const money = (n: number) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(n);
+
+  const handleApprove = async () => {
+    setApproving(true);
+    try {
+      const res = await fetch(`${API_URL}/track/${id}/approve`, { method: "POST" });
+      if (res.ok) setApproved(true);
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const isApproved = approved ?? order?.budgetApproved ?? false;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -240,6 +256,51 @@ export default function TrackOrderPage() {
                   {order.description}
                 </p>
               </div>
+
+              {/* Budget approval */}
+              {order.estimatedCost != null && (
+                <div className={[
+                  "rounded-xl border p-5",
+                  isApproved
+                    ? "bg-green-50 border-green-200"
+                    : "bg-amber-50 border-amber-200",
+                ].join(" ")}>
+                  <div className="flex items-start gap-3">
+                    <div className={[
+                      "w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                      isApproved ? "bg-green-100" : "bg-amber-100",
+                    ].join(" ")}>
+                      {isApproved
+                        ? <CheckCircle2 size={18} className="text-green-600" />
+                        : <DollarSign size={18} className="text-amber-600" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={[
+                        "text-sm font-semibold",
+                        isApproved ? "text-green-800" : "text-amber-800",
+                      ].join(" ")}>
+                        {isApproved ? "Presupuesto aprobado" : "Presupuesto pendiente de aprobación"}
+                      </p>
+                      <p className={[
+                        "text-lg font-bold mt-0.5 tabular-nums",
+                        isApproved ? "text-green-700" : "text-amber-700",
+                      ].join(" ")}>
+                        {money(Number(order.estimatedCost))}
+                      </p>
+                      {!isApproved && (
+                        <button
+                          onClick={handleApprove}
+                          disabled={approving}
+                          className="mt-3 inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                        >
+                          <ThumbsUp size={15} />
+                          {approving ? "Aprobando..." : "Aprobar presupuesto"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Details grid */}
               <div className="bg-white rounded-xl border border-gray-200 p-5">

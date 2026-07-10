@@ -18,6 +18,7 @@ export class TrackService {
         scheduledAt: true,
         estimatedCost: true,
         finalCost: true,
+        budgetApproved: true,
         createdAt: true,
         completedAt: true,
         workshop: { select: { name: true } },
@@ -45,8 +46,24 @@ export class TrackService {
       scheduledAt: order.scheduledAt,
       estimatedCost: order.estimatedCost,
       finalCost: order.finalCost,
+      budgetApproved: order.budgetApproved,
       createdAt: order.createdAt,
       completedAt: order.completedAt,
     };
+  }
+
+  async approveBudget(id: string) {
+    const order = await this.prisma.workOrder.findUnique({
+      where: { id },
+      select: { id: true, budgetApproved: true },
+    });
+    if (!order) throw new NotFoundException("Work order not found");
+
+    await this.prisma.workOrder.update({
+      where: { id },
+      data: { budgetApproved: true },
+    });
+
+    return { approved: true };
   }
 }

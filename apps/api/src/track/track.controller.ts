@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from "@nestjs/common";
+import { Controller, Get, Param, Post } from "@nestjs/common";
 import { Public } from "../common/decorators/public.decorator";
 import { TrackService } from "./track.service";
 
@@ -10,5 +10,11 @@ export class TrackController {
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.trackService.findOne(id);
+  }
+
+  @Public()
+  @Post(":id/approve")
+  approveBudget(@Param("id") id: string) {
+    return this.trackService.approveBudget(id);
   }
 }

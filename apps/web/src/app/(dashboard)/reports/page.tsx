@@ -3,6 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { fmtMoney } from "@/lib/format";
+import { downloadCsv } from "@/lib/csv";
+import { Download } from "lucide-react";
 
 type MechanicRevenue = {
   mechanicId: string;
@@ -46,13 +48,42 @@ export default function ReportsPage() {
   const maxRevenue = Math.max(...(byMechanic?.map((m) => m.revenue) ?? [0]), 1);
   const maxServiceCount = Math.max(...(topServices?.map((s) => s._count.description) ?? [0]), 1);
 
+  function exportMechanicCsv() {
+    if (!byMechanic?.length) return;
+    downloadCsv(
+      ["Mecánico", "Órdenes", "Ingresos"],
+      byMechanic.map((m) => [m.mechanicName, String(m.orderCount), String(m.revenue)]),
+      "ingresos-por-mecanico.csv",
+    );
+  }
+
+  function exportServicesCsv() {
+    if (!topServices?.length) return;
+    downloadCsv(
+      ["Servicio", "Cantidad"],
+      topServices.map((s) => [s.description, String(s._count.description)]),
+      "servicios-frecuentes.csv",
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Reportes</h1>
 
       {/* Revenue by mechanic */}
       <section className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Ingresos por mecánico</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Ingresos por mecánico</h2>
+          {byMechanic?.length ? (
+            <button
+              onClick={exportMechanicCsv}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <Download size={13} />
+              Exportar CSV
+            </button>
+          ) : null}
+        </div>
 
         {loadingMechanic ? (
           <div className="space-y-3">
@@ -90,7 +121,18 @@ export default function ReportsPage() {
 
       {/* Top services */}
       <section className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Servicios más frecuentes</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Servicios más frecuentes</h2>
+          {topServices?.length ? (
+            <button
+              onClick={exportServicesCsv}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <Download size={13} />
+              Exportar CSV
+            </button>
+          ) : null}
+        </div>
 
         {loadingServices ? (
           <div className="space-y-3">
