@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarClock, TrendingUp, UserX } from "lucide-react";
 import { api } from "@/lib/api";
+import { fmtMoney } from "@/lib/format";
 import { relativeTime } from "@/lib/relative-time";
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -20,9 +21,7 @@ type RevenueBar = { label: string; revenue: number };
 
 function RevenueChart({ data, isLoading }: { data?: RevenueBar[]; isLoading: boolean }) {
   const max = Math.max(...(data?.map((d) => d.revenue) ?? [0]), 1);
-  const fmt = (n: number) =>
-    n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` :
-    n >= 1_000 ? `$${(n / 1_000).toFixed(0)}k` : `$${n}`;
+  const fmt = fmtMoney;
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -143,12 +142,6 @@ export default function DashboardPage() {
   const stats = data?.stats;
 
   const monthRevenue = stats?.monthRevenue ?? 0;
-  const fmtMoney = (n: number) =>
-    n >= 1_000_000
-      ? `$${(n / 1_000_000).toFixed(1)}M`
-      : n >= 1_000
-      ? `$${(n / 1_000).toFixed(0)}k`
-      : `$${n.toLocaleString("es-AR")}`;
 
   const STAT_CARDS = [
     { label: "Activas",     value: stats?.activeOrders,     href: "/work-orders", color: "text-blue-600 dark:text-blue-400" },

@@ -143,10 +143,13 @@ export class WhatsAppService {
       const base64: string | undefined = res.data?.base64;
       if (!base64) return null;
 
+      const mimeType: string =
+        msgData?.message?.audioMessage?.mimetype ?? "audio/ogg";
+
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent([
-        { inlineData: { data: base64, mimeType: "audio/ogg" } },
+        { inlineData: { data: base64, mimeType } },
         "Transcribí este audio en español rioplatense. Devolvé únicamente el texto transcripto, sin explicaciones ni formato.",
       ]);
       return result.response.text().trim() || null;

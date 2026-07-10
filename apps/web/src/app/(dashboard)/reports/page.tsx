@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { fmtMoney } from "@/lib/format";
 
 type MechanicRevenue = {
   mechanicId: string;
@@ -19,13 +20,6 @@ type AvgTime = {
   avgHours: number;
   count: number;
 };
-
-const fmtMoney = (n: number) =>
-  n >= 1_000_000
-    ? `$${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000
-    ? `$${(n / 1_000).toFixed(0)}k`
-    : `$${n.toLocaleString("es-AR")}`;
 
 export default function ReportsPage() {
   const { data: byMechanic, isLoading: loadingMechanic } = useQuery<MechanicRevenue[]>({

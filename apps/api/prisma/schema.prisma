@@ -1,11 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 // ─── Tenant (one per workshop) ──────────────────────────────────────────────
@@ -172,9 +174,10 @@ model TechnicalGuide {
   workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
 
   title      String
-  vehicle    String?   // e.g. "Toyota Corolla 2019"
-  category   String?   // e.g. "Frenos", "Motor", "Transmisión"
-  content    String    // full guide text
+  vehicle    String?
+  category   String?
+  content    String
+  embedding  Unsupported("vector(768)")?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

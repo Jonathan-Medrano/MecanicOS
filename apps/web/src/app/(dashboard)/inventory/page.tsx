@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { fmtMoney } from "@/lib/format";
 import { toast } from "sonner";
 import {
   Package,
@@ -85,11 +86,6 @@ function formToBody(f: PartFormValues) {
     costPrice: f.costPrice !== "" ? Number(f.costPrice) : undefined,
     sellPrice: f.sellPrice !== "" ? Number(f.sellPrice) : undefined,
   };
-}
-
-function fmtMoney(n?: number) {
-  if (n == null) return "—";
-  return `$${n.toLocaleString("es-AR")}`;
 }
 
 function isLowStock(p: Part) {
