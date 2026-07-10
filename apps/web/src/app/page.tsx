@@ -216,22 +216,22 @@ export default async function LandingPage() {
               </div>
               <span className="font-bold text-gray-900 dark:text-gray-100 text-lg tracking-tight">TallerOS</span>
             </Link>
-            <nav className="flex items-center gap-3">
+            <nav className="flex items-center gap-2 sm:gap-3 shrink-0">
               {isSignedIn ? (
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+                  className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all whitespace-nowrap"
                 >
                   Ir al taller <ArrowRight size={14} />
                 </Link>
               ) : (
                 <>
-                  <Link href="/sign-in" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-medium transition-colors">
+                  <Link href="/sign-in" className="hidden min-[380px]:block text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-medium transition-colors whitespace-nowrap">
                     Iniciar sesión
                   </Link>
                   <Link
                     href="/sign-up"
-                    className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+                    className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all whitespace-nowrap"
                   >
                     Empezá gratis
                   </Link>
