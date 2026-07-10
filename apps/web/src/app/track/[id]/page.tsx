@@ -323,17 +323,6 @@ export default function TrackOrderPage() {
                   {order.completedAt && (
                     <InfoRow label="Completado" value={fmt(order.completedAt) ?? "—"} />
                   )}
-                  {order.estimatedCost != null && (
-                    <InfoRow
-                      label="Presupuesto"
-                      value={
-                        <span className="flex items-center gap-1">
-                          <DollarSign size={13} className="text-gray-400 shrink-0" />
-                          {money(Number(order.estimatedCost))}
-                        </span>
-                      }
-                    />
-                  )}
                   {order.finalCost != null && (
                     <InfoRow
                       label="Costo final"
