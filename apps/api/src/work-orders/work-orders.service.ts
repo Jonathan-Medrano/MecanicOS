@@ -6,12 +6,22 @@ import {
   UpdateWorkOrderDto,
   CreateWorkOrderItemDto,
   UpdateWorkOrderItemDto,
+  CreatePaymentDto,
 } from "@mecanico/shared";
 
-const STATUS_MESSAGES: Partial<Record<string, string>> = {
-  DONE: "✅ Tu vehículo está listo para retirar. ¡Gracias por confiar en nosotros!",
-  DELIVERED: "🙏 Gracias por tu visita. ¡Hasta la próxima!",
-};
+function buildStatusMessage(status: string, orderId: string): string | undefined {
+  const APP_URL = process.env.APP_URL ?? "https://app.talleros.com";
+  if (status === "DONE") {
+    return (
+      `✅ Tu vehículo está listo para retirar. ¡Gracias por confiar en nosotros!\n` +
+      `🔗 Seguí el estado de tu orden acá: ${APP_URL}/track/${orderId}`
+    );
+  }
+  if (status === "DELIVERED") {
+    return "🙏 Gracias por tu visita. ¡Hasta la próxima!";
+  }
+  return undefined;
+}
 
 @Injectable()
 export class WorkOrdersService {
@@ -35,48 +45,83 @@ export class WorkOrdersService {
     });
   }
 
-  findAll(
+  async findAll(
     workshopId: string,
-    filters?: { clientId?: string; vehicleId?: string; status?: string; paymentStatus?: string; search?: string; scheduledDate?: string },
+    filters?: {
+      clientId?: string;
+      vehicleId?: string;
+      status?: string;
+      paymentStatus?: string;
+      search?: string;
+      scheduledDate?: string;
+      scheduledFrom?: string;
+      scheduledTo?: string;
+      page?: number;
+      limit?: number;
+    },
   ) {
     const search = filters?.search?.trim();
-    let scheduledAtFilter: any = undefined;
+    const page  = Math.max(1, filters?.page  ?? 1);
+    const limit = Math.min(Math.max(1, filters?.limit ?? 25), 100);
+    const skip  = (page - 1) * limit;
+
+    let scheduledAtFilter: any = {};
     if (filters?.scheduledDate === "today") {
       const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
-      const nowAR = new Date(Date.now() - AR_OFFSET_MS);
+      const nowAR  = new Date(Date.now() - AR_OFFSET_MS);
       const startAR = new Date(nowAR); startAR.setUTCHours(0, 0, 0, 0);
-      const endAR = new Date(nowAR); endAR.setUTCHours(23, 59, 59, 999);
+      const endAR   = new Date(nowAR); endAR.setUTCHours(23, 59, 59, 999);
       scheduledAtFilter = {
         scheduledAt: {
           gte: new Date(startAR.getTime() + AR_OFFSET_MS),
-          lte: new Date(endAR.getTime() + AR_OFFSET_MS),
+          lte: new Date(endAR.getTime()   + AR_OFFSET_MS),
+        },
+      };
+    } else if (filters?.scheduledFrom || filters?.scheduledTo) {
+      scheduledAtFilter = {
+        scheduledAt: {
+          ...(filters.scheduledFrom ? { gte: new Date(filters.scheduledFrom) } : {}),
+          ...(filters.scheduledTo   ? { lte: new Date(filters.scheduledTo)   } : {}),
         },
       };
     }
-    return this.prisma.workOrder.findMany({
-      where: {
-        workshopId,
-        ...(filters?.clientId ? { clientId: filters.clientId } : {}),
-        ...(filters?.vehicleId ? { vehicleId: filters.vehicleId } : {}),
-        ...(filters?.status ? { status: filters.status as any } : {}),
-        ...(filters?.paymentStatus ? { paymentStatus: filters.paymentStatus as any } : {}),
-        ...(scheduledAtFilter ?? {}),
-        ...(search
-          ? {
-              OR: [
-                { description: { contains: search, mode: "insensitive" } },
-                { client: { name: { contains: search, mode: "insensitive" } } },
-                { vehicle: { plate: { contains: search, mode: "insensitive" } } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
-      include: {
-        client: { select: { id: true, name: true, phone: true } },
-        vehicle: { select: { id: true, brand: true, model: true, plate: true } },
-      },
-    });
+
+    const where = {
+      workshopId,
+      ...(filters?.clientId     ? { clientId:     filters.clientId }            : {}),
+      ...(filters?.vehicleId    ? { vehicleId:    filters.vehicleId }           : {}),
+      ...(filters?.status       ? { status:       filters.status as any }       : {}),
+      ...(filters?.paymentStatus ? { paymentStatus: filters.paymentStatus as any } : {}),
+      ...scheduledAtFilter,
+      ...(search
+        ? {
+            OR: [
+              { description: { contains: search, mode: "insensitive" } },
+              { client:  { name:  { contains: search, mode: "insensitive" } } },
+              { vehicle: { plate: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+
+    const include = {
+      client:     { select: { id: true, name: true, phone: true } },
+      vehicle:    { select: { id: true, brand: true, model: true, plate: true } },
+      assignedTo: { select: { id: true, name: true } },
+    };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.workOrder.findMany({
+        where,
+        orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+        include,
+        take: limit,
+        skip,
+      }),
+      this.prisma.workOrder.count({ where }),
+    ]);
+
+    return { items, total, page, pages: Math.ceil(total / limit) };
   }
 
   async findOne(workshopId: string, id: string) {
@@ -86,6 +131,8 @@ export class WorkOrdersService {
         client: true,
         vehicle: true,
         items: { orderBy: { createdAt: "asc" } },
+        payments: { orderBy: { createdAt: "asc" } },
+        assignedTo: { select: { id: true, name: true } },
       },
     });
     if (!order) throw new NotFoundException("Work order not found");
@@ -143,10 +190,12 @@ export class WorkOrdersService {
     });
 
     // Send WhatsApp to client when status changes to a notifiable state
-    const notifMsg = dto.status ? STATUS_MESSAGES[dto.status] : undefined;
     const prevStatus = existing.status;
-    if (notifMsg && dto.status !== prevStatus && updated.client?.phone) {
-      void this.notifications.sendWhatsApp(updated.client.phone, notifMsg);
+    if (dto.status && dto.status !== prevStatus && updated.client?.phone) {
+      const notifMsg = buildStatusMessage(dto.status, id);
+      if (notifMsg) {
+        void this.notifications.sendWhatsApp(updated.client.phone, notifMsg);
+      }
     }
 
     return updated;
@@ -155,6 +204,27 @@ export class WorkOrdersService {
   async remove(workshopId: string, id: string) {
     await this.findOne(workshopId, id);
     return this.prisma.workOrder.deleteMany({ where: { id, workshopId } });
+  }
+
+  async addPayment(workshopId: string, workOrderId: string, dto: CreatePaymentDto) {
+    await this.findOne(workshopId, workOrderId);
+    return this.prisma.payment.create({
+      data: {
+        workshopId,
+        workOrderId,
+        amount: dto.amount,
+        method: dto.method as any,
+        note: dto.note,
+      },
+    });
+  }
+
+  async getPayments(workshopId: string, workOrderId: string) {
+    await this.findOne(workshopId, workOrderId);
+    return this.prisma.payment.findMany({
+      where: { workOrderId },
+      orderBy: { createdAt: "asc" },
+    });
   }
 
   async notifyClient(workshopId: string, id: string) {

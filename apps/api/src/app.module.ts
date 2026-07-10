@@ -14,6 +14,9 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { GuidesModule } from "./guides/guides.module";
 import { AssistantModule } from "./assistant/assistant.module";
 import { HealthModule } from "./health/health.module";
+import { TrackModule } from "./track/track.module";
+import { PartsModule } from "./parts/parts.module";
+import { RemindersModule } from "./reminders/reminders.module";
 import { ClerkAuthGuard } from "./common/guards/clerk-auth.guard";
 import { PermissionsGuard } from "./common/guards/permissions.guard";
 
@@ -33,6 +36,9 @@ import { PermissionsGuard } from "./common/guards/permissions.guard";
     GuidesModule,
     AssistantModule,
     HealthModule,
+    TrackModule,
+    PartsModule,
+    RemindersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ClerkAuthGuard },

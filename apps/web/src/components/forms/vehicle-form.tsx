@@ -17,6 +17,8 @@ const schema = z.object({
   color: z.string().optional(),
   vin: z.string().optional(),
   notes: z.string().max(500).optional(),
+  nextServiceDate: z.string().optional(),
+  nextServiceKm: z.coerce.number().int().positive().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -31,6 +33,8 @@ type VehicleData = {
   color?: string;
   vin?: string;
   notes?: string;
+  nextServiceDate?: string;
+  nextServiceKm?: number;
 };
 
 interface VehicleFormProps {
@@ -64,6 +68,8 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
           color: vehicle.color ?? "",
           vin: vehicle.vin ?? "",
           notes: vehicle.notes ?? "",
+          nextServiceDate: vehicle.nextServiceDate ?? "",
+          nextServiceKm: vehicle.nextServiceKm,
         }
       : { clientId: clientId ?? "", year: new Date().getFullYear() },
   });
@@ -75,6 +81,8 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
         color: data.color || undefined,
         vin: data.vin || undefined,
         notes: data.notes || undefined,
+        nextServiceDate: data.nextServiceDate || undefined,
+        nextServiceKm: data.nextServiceKm,
       };
       return isEdit ? api.patch(`/vehicles/${vehicle.id}`, payload) : api.post("/vehicles", payload);
     },
@@ -127,6 +135,15 @@ export function VehicleForm({ clientId, vehicle, onSuccess }: VehicleFormProps) 
       <Field label="Notas" error={errors.notes?.message}>
         <textarea className={inputClass} {...register("notes")} rows={2} placeholder="Observaciones del vehículo..." />
       </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Próximo servicio (fecha)" error={errors.nextServiceDate?.message}>
+          <input className={inputClass} {...register("nextServiceDate")} type="date" />
+        </Field>
+        <Field label="Próximo servicio (km)" error={errors.nextServiceKm?.message}>
+          <input className={inputClass} {...register("nextServiceKm")} type="number" min={1} placeholder="85000" />
+        </Field>
+      </div>
 
       <div className="flex justify-end pt-2">
         <button

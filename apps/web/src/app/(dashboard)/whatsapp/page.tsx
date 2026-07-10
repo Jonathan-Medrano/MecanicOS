@@ -94,7 +94,7 @@ export default function WhatsAppPage() {
 
   if (!canView) {
     return (
-      <div className="text-center py-20 text-gray-400 text-sm">
+      <div className="text-center py-20 text-gray-400 dark:text-gray-500 text-sm">
         No tenés permisos para ver las conversaciones de WhatsApp.
       </div>
     );
@@ -117,35 +117,35 @@ export default function WhatsAppPage() {
 
   const ConversationList = (
     <div className={`
-      flex flex-col bg-white border-r border-gray-200
+      flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700
       w-full md:w-72 md:shrink-0
       ${selectedPhone ? "hidden md:flex" : "flex"}
     `}>
-      <div className="px-4 py-4 border-b border-gray-200">
-        <h1 className="text-base font-semibold text-gray-900">WhatsApp</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Mensajes de clientes</p>
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">WhatsApp</h1>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Mensajes de clientes</p>
       </div>
       <div className="flex-1 overflow-y-auto">
         {convsLoading && (
           <div className="space-y-px animate-pulse px-4 pt-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-[60px] bg-gray-100 rounded-lg mb-1" />
+              <div key={i} className="h-[60px] bg-gray-100 dark:bg-gray-700 rounded-lg mb-1" />
             ))}
           </div>
         )}
         {!convsLoading && !conversations?.length && (
-          <p className="px-4 py-8 text-sm text-gray-400 text-center">Sin mensajes aún.</p>
+          <p className="px-4 py-8 text-sm text-gray-400 dark:text-gray-500 text-center">Sin mensajes aún.</p>
         )}
         {conversations?.map((conv) => (
           <button
             key={conv.phone}
             onClick={() => handleSelectConversation(conv.phone)}
-            className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors ${
+            className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors ${
               selectedPhone === conv.phone ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                 {conv.client?.name ?? (
                   <span className="text-orange-500">Sin clasificar</span>
                 )}
@@ -156,10 +156,10 @@ export default function WhatsAppPage() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">{conv.phone}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{conv.phone}</p>
             <div className="flex items-center justify-between mt-0.5">
-              <p className="text-xs text-gray-400 truncate flex-1 mr-2">{conv.lastMessage}</p>
-              <p className="text-xs text-gray-500 shrink-0">{relativeTime(conv.lastAt)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 truncate flex-1 mr-2">{conv.lastMessage}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{relativeTime(conv.lastAt)}</p>
             </div>
           </button>
         ))}
@@ -169,31 +169,31 @@ export default function WhatsAppPage() {
 
   const ChatPanel = (
     <div className={`
-      flex-1 flex flex-col bg-gray-50 min-w-0
+      flex-1 flex flex-col bg-gray-50 dark:bg-gray-800 min-w-0
       ${selectedPhone ? "flex" : "hidden md:flex"}
     `}>
       {!selectedPhone ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-400 text-sm">Seleccioná una conversación</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">Seleccioná una conversación</p>
         </div>
       ) : (
         <>
           {/* Chat header */}
-          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
+          <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3 shrink-0">
             <button
               onClick={handleBack}
-              className="md:hidden flex items-center justify-center w-9 h-9 text-gray-500 rounded-md hover:bg-gray-100"
+              className="md:hidden flex items-center justify-center w-9 h-9 text-gray-500 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
               aria-label="Volver"
             >
               <ArrowLeft size={18} />
             </button>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {selected?.client?.name ?? (
                   <span className="text-orange-500">Sin clasificar</span>
                 )}
               </p>
-              <p className="text-xs text-gray-400">{selectedPhone}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{selectedPhone}</p>
             </div>
             {!selected?.client && canSend && (
               <button
@@ -211,7 +211,7 @@ export default function WhatsAppPage() {
               <select
                 value={classifyClientId}
                 onChange={(e) => setClassifyClientId(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-2 text-sm flex-1 bg-white"
+                className="border border-gray-300 dark:border-gray-600 rounded px-2 py-2 text-sm flex-1 bg-white dark:bg-gray-800 dark:text-gray-100"
               >
                 <option value="">Seleccioná un cliente...</option>
                 {clients?.map((c) => (
@@ -227,7 +227,7 @@ export default function WhatsAppPage() {
               </button>
               <button
                 onClick={() => setClassifyOpen(false)}
-                className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
+                className="flex items-center justify-center w-9 h-9 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 ✕
               </button>
@@ -245,13 +245,13 @@ export default function WhatsAppPage() {
                   className={`max-w-[80%] sm:max-w-sm lg:max-w-md px-3 py-2 rounded-2xl text-sm ${
                     m.direction === "OUTBOUND"
                       ? "bg-blue-600 text-white rounded-br-sm"
-                      : "bg-white border border-gray-200 text-gray-900 rounded-bl-sm shadow-sm"
+                      : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-sm shadow-sm"
                   }`}
                 >
                   <p className="whitespace-pre-wrap break-words">{m.body}</p>
                   <p
                     className={`text-xs mt-1 ${
-                      m.direction === "OUTBOUND" ? "text-blue-100" : "text-gray-400"
+                      m.direction === "OUTBOUND" ? "text-blue-100" : "text-gray-400 dark:text-gray-500"
                     }`}
                   >
                     {new Date(m.createdAt).toLocaleTimeString("es-AR", {
@@ -267,7 +267,7 @@ export default function WhatsAppPage() {
 
           {/* Send */}
           {canSend ? (
-            <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-2 shrink-0">
+            <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-2 shrink-0">
               <input
                 type="text"
                 value={text}
@@ -281,7 +281,7 @@ export default function WhatsAppPage() {
                 enterKeyHint="send"
                 inputMode="text"
                 placeholder="Escribí un mensaje..."
-                className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="flex-1 border border-gray-200 dark:border-gray-700 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-100"
               />
               <button
                 onClick={() => sendMutation.mutate()}
@@ -292,8 +292,8 @@ export default function WhatsAppPage() {
               </button>
             </div>
           ) : (
-            <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
-              <p className="text-xs text-gray-400 text-center">Solo lectura — sin permiso para enviar mensajes.</p>
+            <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3 shrink-0">
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center">Solo lectura — sin permiso para enviar mensajes.</p>
             </div>
           )}
         </>

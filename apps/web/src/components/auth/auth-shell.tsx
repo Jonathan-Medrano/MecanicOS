@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Wrench, ClipboardList, MessageSquare, Bot, Check } from "lucide-react";
+import { Wrench, ClipboardList, MessageSquare, Bot } from "lucide-react";
 
 const FEATURES = [
   { icon: ClipboardList, text: "Órdenes de trabajo digitales" },
@@ -65,10 +65,10 @@ export function AuthShell({ children, mobileSubtitle }: AuthShellProps) {
 
           {/* Feature list */}
           <ul className="space-y-3">
-            {FEATURES.map(({ text }) => (
+            {FEATURES.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                  <Check size={10} className="text-blue-400" strokeWidth={3} />
+                <div className="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                  <Icon size={13} className="text-blue-400" />
                 </div>
                 <span className="text-slate-300 text-sm">{text}</span>
               </li>
@@ -90,22 +90,22 @@ export function AuthShell({ children, mobileSubtitle }: AuthShellProps) {
       </aside>
 
       {/* ── Right form panel ────────────────────────────────── */}
-      <main className="flex-1 flex flex-col items-center justify-center bg-gray-50 px-6 py-12 min-h-screen">
+      <main className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-950 px-6 py-12 min-h-screen">
         {/* Mobile-only logo */}
         <div className="md:hidden mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2 justify-center">
             <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
               <Wrench size={15} className="text-white" />
             </div>
-            <span className="text-gray-900 font-bold text-lg tracking-tight">TallerOS</span>
+            <span className="text-gray-900 dark:text-gray-100 font-bold text-lg tracking-tight">TallerOS</span>
           </Link>
           {mobileSubtitle && (
-            <p className="text-sm text-gray-500 mt-1">{mobileSubtitle}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{mobileSubtitle}</p>
           )}
         </div>
 
         {/* Form card */}
-        <div className="w-full max-w-[380px] bg-white rounded-2xl border border-gray-200 shadow-sm shadow-gray-100 px-8 py-8">
+        <div className="animate-fade-in-up w-full max-w-[380px] bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg shadow-gray-900/[0.08] px-8 py-8">
           {children}
         </div>
       </main>

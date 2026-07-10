@@ -1,9 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { Permission } from "../common/permissions";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING:       "Pendiente",
@@ -14,25 +16,136 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED:     "Cancelado",
 };
 
-const STATUS_KEYS = Object.keys(STATUS_LABELS);
+const MAX_HISTORY_TURNS = 30; // Content objects in the chat history
+const MAX_TOOL_ITERATIONS = 5; // Max function-calling rounds per message
 
-const STATUS_NOTIFY_MSG: Partial<Record<string, string>> = {
-  DONE:      "✅ Tu vehículo está listo para retirar. ¡Gracias por confiar en nosotros!",
-  DELIVERED: "🙏 Gracias por tu visita. ¡Hasta la próxima!",
+const SYSTEM_PROMPT = `Sos el asistente IA de TallerOS, un sistema de gestión de taller mecánico en Argentina.
+
+## Tu rol
+Tenés DOS capacidades combinadas en un solo asistente:
+
+**1. GESTIÓN OPERATIVA** — Usando herramientas para acceder a los datos reales del taller:
+- Ver las órdenes de trabajo activas del día
+- Buscar órdenes por vehículo (patente, marca, modelo)
+- Cambiar el estado de una orden de trabajo
+- Agregar notas del mecánico a una orden
+- Notificar a clientes por WhatsApp cuando el vehículo está listo
+- Buscar información de clientes
+
+**2. EXPERTO TÉCNICO** — Con tu conocimiento y las guías del taller:
+- Responder preguntas de mecánica automotriz con procedimientos paso a paso
+- Buscar primero en las guías técnicas del taller antes de responder
+- Dar especificaciones, torques, intervalos de servicio, diagnósticos
+
+## Reglas de conversación
+- Hablá siempre en español rioplatense (voseo: "hacé", "escribí", "tenés", "podés")
+- Sé conciso — los mecánicos están trabajando con las manos sucias, no quieren parrafadas
+- Usá emojis con moderación para legibilidad (✅ ⚠️ 🔍 📋 🚗 👤)
+- Para respuestas técnicas: usá listas numeradas, sé específico con herramientas y torques
+
+## Reglas para cambios de estado y notificaciones
+- SIEMPRE confirmá antes de ejecutar una acción (cambiar estado, notificar cliente)
+- Preguntá "¿Confirmo?" y esperá "sí" / "dale" / "ok" antes de llamar a la herramienta
+- Si el mecánico ya confirmó explícitamente en este mensaje, podés ejecutar directamente
+- Después de cambiar un estado a DONE, preguntá si quiere notificar al cliente
+
+## Limitaciones
+- No podés crear órdenes, clientes ni vehículos nuevos desde WhatsApp
+- Solo actuás sobre el taller al que pertenece el mecánico`;
+
+// ─── Tool definitions ─────────────────────────────────────────────────────────
+
+const TOOL_LIST_TODAY_ORDERS = {
+  name: "listTodayOrders",
+  description: "Lista las órdenes de trabajo activas de hoy en el taller (programadas para hoy o creadas hoy sin fecha asignada)",
+  parameters: { type: "OBJECT", properties: {}, required: [] as string[] },
 };
 
-const YES_WORDS = new Set(["si", "sí", "s", "yes", "dale", "ok", "claro", "confirmo", "bueno", "1"]);
-const NO_WORDS  = new Set(["no", "n", "nel", "cancelar", "cancel", "nope", "2"]);
-
-type NlpResult = {
-  intent: "COMPLETE_ORDER" | "NOTIFY_CLIENT" | "CHANGE_STATUS" | "LIST_ORDERS" | "ADD_NOTE" | "SEARCH_CLIENT" | "MENU" | "CONFIRM_YES" | "CONFIRM_NO" | "UNKNOWN";
-  vehicleQuery: string | null;
-  newStatus: string | null;
-  noteText: string | null;
+const TOOL_FIND_ORDERS_BY_VEHICLE = {
+  name: "findOrdersByVehicle",
+  description: "Busca órdenes de trabajo activas por marca, modelo o patente del vehículo. Podés pasar múltiples palabras.",
+  parameters: {
+    type: "OBJECT",
+    properties: { query: { type: "STRING", description: "Patente, marca o modelo del vehículo. Ej: 'ABC123', 'corolla', 'toyota hilux'" } },
+    required: ["query"],
+  },
 };
+
+const TOOL_FIND_CLIENT = {
+  name: "findClient",
+  description: "Busca un cliente por nombre o teléfono y muestra sus órdenes activas",
+  parameters: {
+    type: "OBJECT",
+    properties: { query: { type: "STRING", description: "Nombre o número de teléfono del cliente" } },
+    required: ["query"],
+  },
+};
+
+const TOOL_UPDATE_ORDER_STATUS = {
+  name: "updateOrderStatus",
+  description: "Cambia el estado de una orden de trabajo",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      orderId: { type: "STRING", description: "ID de la orden de trabajo (obtenido de listTodayOrders o findOrdersByVehicle)" },
+      status: {
+        type: "STRING",
+        description: "Nuevo estado: PENDING, IN_PROGRESS, WAITING_PARTS, DONE, DELIVERED, CANCELLED",
+      },
+    },
+    required: ["orderId", "status"],
+  },
+};
+
+const TOOL_ADD_NOTE = {
+  name: "addNote",
+  description: "Agrega una nota del mecánico a una orden de trabajo (se SUMA a las notas existentes, no las reemplaza)",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      orderId: { type: "STRING", description: "ID de la orden de trabajo" },
+      note: { type: "STRING", description: "Texto de la nota a agregar" },
+    },
+    required: ["orderId", "note"],
+  },
+};
+
+const TOOL_SEND_NOTIFICATION = {
+  name: "sendClientNotification",
+  description: "Envía una notificación de WhatsApp al cliente avisando que su vehículo está listo para retirar",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      orderId: { type: "STRING", description: "ID de la orden de trabajo" },
+    },
+    required: ["orderId"],
+  },
+};
+
+const TOOL_SEARCH_GUIDES = {
+  name: "searchTechnicalGuides",
+  description: "Busca guías técnicas de reparación del taller por tema, sistema o tipo de vehículo. Usalo antes de responder preguntas técnicas.",
+  parameters: {
+    type: "OBJECT",
+    properties: { query: { type: "STRING", description: "Tema de búsqueda. Ej: 'frenos corolla', 'distribución diesel', 'diagnóstico inyectores'" } },
+    required: ["query"],
+  },
+};
+
+function buildTools(permissions: string[]): any[] {
+  const tools: any[] = [TOOL_LIST_TODAY_ORDERS, TOOL_FIND_ORDERS_BY_VEHICLE, TOOL_SEARCH_GUIDES];
+  if (permissions.includes(Permission.VIEW_CLIENTS)) tools.push(TOOL_FIND_CLIENT);
+  if (permissions.includes(Permission.CHANGE_ORDER_STATUS)) {
+    tools.push(TOOL_UPDATE_ORDER_STATUS, TOOL_ADD_NOTE, TOOL_SEND_NOTIFICATION);
+  }
+  return tools;
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class BotService {
+  private readonly logger = new Logger(BotService.name);
   private genAI: GoogleGenerativeAI | null = null;
 
   constructor(
@@ -53,415 +166,145 @@ export class BotService {
     permissions: string[],
     incomingText: string,
   ): Promise<string> {
-    await this.getOrCreateSession(workshopId, phone);
-    const text = incomingText.trim().toLowerCase();
+    const text = incomingText.trim();
+    const textLower = text.toLowerCase();
 
-    if (["menu", "menú", "inicio", "0", "salir", "hola", "hi"].includes(text)) {
-      await this.updateSession(workshopId, phone, "IDLE", null);
+    // Reset shortcut
+    if (["menu", "menú", "inicio", "0", "salir"].includes(textLower)) {
+      await this.clearHistory(workshopId, phone);
       return this.mainMenu(employeeName, permissions);
     }
 
-    const session = await this.prisma.botSession.findUnique({
-      where: { workshopId_phone: { workshopId, phone } },
-    });
-    const step = session?.step ?? "IDLE";
-    const context = session?.context as any;
-
-    switch (step) {
-      case "IDLE":
-        return this.handleIdle(workshopId, phone, permissions, employeeName, text, incomingText);
-
-      case "CONFIRM_COMPLETE":
-        return this.handleConfirmComplete(workshopId, phone, text, context);
-
-      case "CONFIRM_NOTIFY":
-        return this.handleConfirmNotify(workshopId, phone, text, context);
-
-      case "REQUEST_PHONE":
-        return this.handleRequestPhone(workshopId, phone, incomingText.trim(), context);
-
-      case "VEHICLE_AMBIGUOUS":
-        return this.handleVehicleAmbiguous(workshopId, phone, text, context);
-
-      case "ORDER_STATUS_SELECT":
-        return this.handleOrderStatusSelect(workshopId, phone, text, context);
-
-      case "ORDER_STATUS_CHANGE":
-        return this.handleOrderStatusChange(workshopId, phone, text, context);
-
-      case "NOTE_ORDER_SELECT":
-        return this.handleNoteOrderSelect(workshopId, phone, text, context);
-
-      case "NOTE_TEXT_INPUT":
-        return this.handleNoteTextInput(workshopId, phone, incomingText, context);
-
-      case "CLIENT_SEARCH":
-        return this.handleClientSearch(workshopId, phone, permissions, text);
-
-      default:
-        await this.updateSession(workshopId, phone, "IDLE", null);
-        return this.mainMenu(employeeName, permissions);
-    }
-  }
-
-  // ─── IDLE: numbered menu OR NLP ──────────────────────────────────────────
-
-  private async handleIdle(
-    workshopId: string,
-    phone: string,
-    permissions: string[],
-    name: string,
-    text: string,
-    rawText: string,
-  ): Promise<string> {
-    if (/^\d+$/.test(text)) {
-      const options = this.buildMenuOptions(permissions);
-      const choice = parseInt(text);
-      if (!choice || !options[choice - 1]) return this.mainMenu(name, permissions);
-
-      const action = options[choice - 1];
-      if (action === "orders_today") return this.listTodayOrders(workshopId);
-      if (action === "order_status") return this.startOrderStatusFlow(workshopId, phone);
-      if (action === "add_note") return this.startAddNoteFlow(workshopId, phone);
-      if (action === "client_search") {
-        await this.updateSession(workshopId, phone, "CLIENT_SEARCH", null);
-        return "🔍 Escribí el nombre o teléfono del cliente:";
-      }
+    if (!this.genAI) {
+      return this.mainMenu(employeeName, permissions);
     }
 
-    return this.handleNlp(workshopId, phone, permissions, name, rawText);
-  }
-
-  // ─── NLP via Gemini ───────────────────────────────────────────────────────
-
-  private async handleNlp(
-    workshopId: string,
-    phone: string,
-    permissions: string[],
-    name: string,
-    rawText: string,
-  ): Promise<string> {
-    if (!this.genAI) return this.mainMenu(name, permissions);
-
-    const parsed = await this.parseIntent(rawText);
-
-    switch (parsed.intent) {
-      case "CONFIRM_YES":
-      case "MENU":
-        return this.mainMenu(name, permissions);
-
-      case "CONFIRM_NO":
-        return "❌ Ok, cancelado.\n\nEscribí *menu* para volver.";
-
-      case "LIST_ORDERS":
-        return this.listTodayOrders(workshopId);
-
-      case "COMPLETE_ORDER":
-      case "CHANGE_STATUS": {
-        if (!parsed.vehicleQuery) {
-          return "¿A qué vehículo te referís? Dame la patente o el modelo.";
-        }
-        const status = parsed.newStatus ?? (parsed.intent === "COMPLETE_ORDER" ? "DONE" : null);
-        if (!status) {
-          return "¿A qué estado lo cambio? Ej: _listo_, _en progreso_, _esperando pieza_.";
-        }
-        return this.startConfirmStatusChange(workshopId, phone, parsed.vehicleQuery, status);
-      }
-
-      case "NOTIFY_CLIENT": {
-        if (!parsed.vehicleQuery) {
-          return "¿A qué vehículo le mando la notificación? Dame la patente o el modelo.";
-        }
-        return this.startConfirmNotify(workshopId, phone, parsed.vehicleQuery);
-      }
-
-      case "ADD_NOTE":
-        return this.startAddNoteFlow(workshopId, phone);
-
-      case "SEARCH_CLIENT": {
-        await this.updateSession(workshopId, phone, "CLIENT_SEARCH", null);
-        if (parsed.vehicleQuery) return this.handleClientSearch(workshopId, phone, permissions, parsed.vehicleQuery);
-        return "🔍 Escribí el nombre o teléfono del cliente:";
-      }
-
-      default:
-        return this.mainMenu(name, permissions);
-    }
-  }
-
-  private async parseIntent(text: string): Promise<NlpResult> {
-    const fallback: NlpResult = { intent: "UNKNOWN", vehicleQuery: null, newStatus: null, noteText: null };
-    if (!this.genAI) return fallback;
+    const history = await this.loadHistory(workshopId, phone);
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `Sos un asistente de un taller mecánico en Argentina. El mecánico escribió o dijo: "${text.replace(/"/g, "'")}"
-
-Analizá la intención y extraé entidades. Devolvé ÚNICAMENTE JSON válido, sin texto adicional ni markdown:
-{"intent":"...","vehicleQuery":"...","newStatus":"...","noteText":"..."}
-
-Valores posibles para intent: COMPLETE_ORDER, NOTIFY_CLIENT, CHANGE_STATUS, LIST_ORDERS, ADD_NOTE, SEARCH_CLIENT, MENU, CONFIRM_YES, CONFIRM_NO, UNKNOWN
-
-Mapeo de estados (newStatus):
-"listo", "terminado", "se terminó", "completado", "está listo" → DONE
-"en progreso", "empezado", "arrancó", "empezamos" → IN_PROGRESS
-"esperando repuesto", "esperando pieza", "sin pieza" → WAITING_PARTS
-"entregado", "lo retiraron" → DELIVERED
-"cancelado" → CANCELLED
-
-Ejemplos:
-"se terminó el corola" → {"intent":"COMPLETE_ORDER","vehicleQuery":"corola","newStatus":"DONE","noteText":null}
-"notificá al cliente del clio rojo" → {"intent":"NOTIFY_CLIENT","vehicleQuery":"clio","newStatus":null,"noteText":null}
-"ponele en progreso al volkswagen ABC123" → {"intent":"CHANGE_STATUS","vehicleQuery":"volkswagen ABC123","newStatus":"IN_PROGRESS","noteText":null}
-"mostrá las órdenes de hoy" → {"intent":"LIST_ORDERS","vehicleQuery":null,"newStatus":null,"noteText":null}
-"sí, dale" → {"intent":"CONFIRM_YES","vehicleQuery":null,"newStatus":null,"noteText":null}
-"no" → {"intent":"CONFIRM_NO","vehicleQuery":null,"newStatus":null,"noteText":null}`;
-
-      const result = await model.generateContent(prompt);
-      const raw = result.response.text().trim();
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (!match) return fallback;
-      return JSON.parse(match[0]) as NlpResult;
-    } catch {
-      return fallback;
+      const { reply, updatedHistory } = await this.runAgentLoop(
+        workshopId, permissions, employeeName, text, history,
+      );
+      await this.saveHistory(workshopId, phone, updatedHistory);
+      return reply;
+    } catch (e: any) {
+      this.logger.error(`Agent loop failed: ${e.message}`);
+      return "⚠️ No pude procesar tu mensaje. Intentá de nuevo o escribí *menu*.";
     }
   }
 
-  // ─── Status change confirm flow ───────────────────────────────────────────
+  // ─── AI agent loop with function calling ─────────────────────────────────
 
-  private async startConfirmStatusChange(
+  private async runAgentLoop(
     workshopId: string,
-    phone: string,
-    vehicleQuery: string,
-    newStatus: string,
-  ): Promise<string> {
-    const orders = await this.findOrdersByVehicleQuery(workshopId, vehicleQuery);
-    if (!orders.length) {
-      return `🔍 No encontré órdenes activas para "${vehicleQuery}".\n\nEscribí *menu* para volver.`;
-    }
+    permissions: string[],
+    employeeName: string,
+    userMessage: string,
+    history: any[],
+  ): Promise<{ reply: string; updatedHistory: any[] }> {
+    const tools = buildTools(permissions);
 
-    if (orders.length === 1) {
-      const o = orders[0];
-      await this.updateSession(workshopId, phone, "CONFIRM_COMPLETE", {
-        orderId: o.id,
-        clientId: o.client.id,
-        clientName: o.client.name,
-        clientPhone: o.client.phone,
-        vehicleLabel: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
-        newStatus,
-      });
-      return `¿Cambio *${o.vehicle.brand} ${o.vehicle.model}* (${o.vehicle.plate}) de *${o.client.name}* a *${STATUS_LABELS[newStatus] ?? newStatus}*?\n\nRespondé *sí* o *no*.`;
-    }
-
-    await this.updateSession(workshopId, phone, "VEHICLE_AMBIGUOUS", {
-      intent: "CHANGE_STATUS",
-      newStatus,
-      candidates: orders.map((o) => ({
-        id: o.id,
-        clientId: o.client.id,
-        clientName: o.client.name,
-        clientPhone: o.client.phone,
-        vehicleLabel: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
-      })),
-    });
-    const lines = [`🚗 Hay ${orders.length} vehículos que coinciden. ¿Cuál?\n`];
-    orders.forEach((o, i) => lines.push(`${i + 1}. ${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate}) — ${o.client.name}`));
-    return lines.join("\n");
-  }
-
-  private async startConfirmNotify(
-    workshopId: string,
-    phone: string,
-    vehicleQuery: string,
-  ): Promise<string> {
-    const orders = await this.findOrdersByVehicleQuery(workshopId, vehicleQuery);
-    if (!orders.length) {
-      return `🔍 No encontré órdenes activas para "${vehicleQuery}".\n\nEscribí *menu* para volver.`;
-    }
-
-    if (orders.length === 1) {
-      const o = orders[0];
-      if (!o.client.phone) {
-        await this.updateSession(workshopId, phone, "REQUEST_PHONE", {
-          clientId: o.client.id,
-          clientName: o.client.name,
-          vehicleLabel: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
-        });
-        return `*${o.client.name}* no tiene número registrado.\n¿Me pasás el WhatsApp para notificarlo?`;
-      }
-      await this.updateSession(workshopId, phone, "CONFIRM_NOTIFY", {
-        clientPhone: o.client.phone,
-        clientName: o.client.name,
-        vehicleLabel: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
-      });
-      return `¿Le mando un mensaje a *${o.client.name}* (${o.client.phone}) sobre su *${o.vehicle.brand} ${o.vehicle.model}*?\n\nRespondé *sí* o *no*.`;
-    }
-
-    await this.updateSession(workshopId, phone, "VEHICLE_AMBIGUOUS", {
-      intent: "NOTIFY_CLIENT",
-      newStatus: null,
-      candidates: orders.map((o) => ({
-        id: o.id,
-        clientId: o.client.id,
-        clientName: o.client.name,
-        clientPhone: o.client.phone,
-        vehicleLabel: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
-      })),
-    });
-    const lines = [`🚗 Hay ${orders.length} vehículos que coinciden. ¿Cuál?\n`];
-    orders.forEach((o, i) => lines.push(`${i + 1}. ${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate}) — ${o.client.name}`));
-    return lines.join("\n");
-  }
-
-  // ─── Confirmation step handlers ───────────────────────────────────────────
-
-  private async handleConfirmComplete(
-    workshopId: string,
-    phone: string,
-    text: string,
-    context: any,
-  ): Promise<string> {
-    if (NO_WORDS.has(text)) {
-      await this.updateSession(workshopId, phone, "IDLE", null);
-      return "❌ Cancelado.\n\nEscribí *menu* para volver.";
-    }
-    if (!YES_WORDS.has(text)) {
-      return `¿Confirmo el cambio de estado? Respondé *sí* o *no*.`;
-    }
-
-    const { orderId, clientId, clientPhone, clientName, vehicleLabel, newStatus } = context;
-
-    await this.prisma.workOrder.updateMany({
-      where: { id: orderId, workshopId },
-      data: {
-        status: newStatus as any,
-        ...(newStatus === "IN_PROGRESS" ? { startedAt: new Date() } : {}),
-        ...((newStatus === "DONE" || newStatus === "DELIVERED") ? { completedAt: new Date() } : {}),
-      },
+    const model = this.genAI!.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: SYSTEM_PROMPT + `\n\nMecánico actual: ${employeeName}`,
     });
 
-    const statusLabel = STATUS_LABELS[newStatus] ?? newStatus;
-    const notifiable = newStatus === "DONE" || newStatus === "DELIVERED";
+    const chat = model.startChat({
+      history,
+      tools: [{ functionDeclarations: tools }],
+    } as any);
 
-    if (notifiable && clientPhone) {
-      await this.updateSession(workshopId, phone, "CONFIRM_NOTIFY", {
-        clientPhone,
-        clientName,
-        vehicleLabel,
+    const newTurns: any[] = [];
+    newTurns.push({ role: "user", parts: [{ text: userMessage }] });
+
+    let result = await chat.sendMessage(userMessage);
+
+    let iterations = 0;
+    while (result.response.functionCalls()?.length && iterations < MAX_TOOL_ITERATIONS) {
+      iterations++;
+      const calls = result.response.functionCalls()!;
+
+      // Record the model's function call turn
+      newTurns.push({
+        role: "model",
+        parts: calls.map((c: any) => ({ functionCall: { name: c.name, args: c.args } })),
       });
-      return `✅ *${vehicleLabel}* marcado como *${statusLabel}*.\n\n¿Le notifico a *${clientName}* por WhatsApp?\n\nRespondé *sí* o *no*.`;
+
+      // Execute all tools
+      const responses = await Promise.all(
+        calls.map(async (call: any) => {
+          try {
+            const response = await this.executeTool(workshopId, permissions, call.name, call.args ?? {});
+            return { functionResponse: { name: call.name, response } };
+          } catch (e: any) {
+            this.logger.warn(`Tool ${call.name} failed: ${e.message}`);
+            return { functionResponse: { name: call.name, response: { error: e.message } } };
+          }
+        }),
+      );
+
+      // Record function responses as a user turn (Gemini convention)
+      newTurns.push({ role: "user", parts: responses });
+
+      result = await (chat.sendMessage as any)(responses);
     }
 
-    if (notifiable && !clientPhone) {
-      await this.updateSession(workshopId, phone, "REQUEST_PHONE", {
-        clientId,
-        clientName,
-        vehicleLabel,
-      });
-      return `✅ *${vehicleLabel}* marcado como *${statusLabel}*.\n\n*${clientName}* no tiene número. ¿Me lo pasás para notificarlo?`;
-    }
+    const reply = result.response.text()?.trim()
+      || "No pude generar una respuesta. Escribí *menu* para volver.";
 
-    await this.updateSession(workshopId, phone, "IDLE", null);
-    return `✅ *${vehicleLabel}* marcado como *${statusLabel}*.\n\nEscribí *menu* para volver.`;
+    // Record final model reply
+    newTurns.push({ role: "model", parts: [{ text: reply }] });
+
+    // Merge and trim history
+    const updatedHistory = [...history, ...newTurns].slice(-MAX_HISTORY_TURNS);
+
+    return { reply, updatedHistory };
   }
 
-  private async handleConfirmNotify(
+  // ─── Tool executor ────────────────────────────────────────────────────────
+
+  private async executeTool(
     workshopId: string,
-    phone: string,
-    text: string,
-    context: any,
-  ): Promise<string> {
-    if (NO_WORDS.has(text)) {
-      await this.updateSession(workshopId, phone, "IDLE", null);
-      return "❌ No se envió notificación.\n\nEscribí *menu* para volver.";
+    permissions: string[],
+    name: string,
+    args: Record<string, any>,
+  ): Promise<object> {
+    switch (name) {
+      case "listTodayOrders":
+        return this.toolListTodayOrders(workshopId);
+
+      case "findOrdersByVehicle":
+        return this.toolFindOrdersByVehicle(workshopId, String(args.query ?? ""));
+
+      case "findClient":
+        if (!permissions.includes(Permission.VIEW_CLIENTS))
+          return { error: "Sin permiso para ver clientes" };
+        return this.toolFindClient(workshopId, String(args.query ?? ""));
+
+      case "updateOrderStatus":
+        if (!permissions.includes(Permission.CHANGE_ORDER_STATUS))
+          return { error: "Sin permiso para cambiar estados" };
+        return this.toolUpdateOrderStatus(workshopId, String(args.orderId), String(args.status));
+
+      case "addNote":
+        if (!permissions.includes(Permission.CHANGE_ORDER_STATUS))
+          return { error: "Sin permiso para agregar notas" };
+        return this.toolAddNote(workshopId, String(args.orderId), String(args.note ?? ""));
+
+      case "sendClientNotification":
+        return this.toolSendClientNotification(workshopId, String(args.orderId));
+
+      case "searchTechnicalGuides":
+        return this.toolSearchTechnicalGuides(workshopId, String(args.query ?? ""));
+
+      default:
+        return { error: `Herramienta desconocida: ${name}` };
     }
-    if (!YES_WORDS.has(text)) {
-      return `¿Le mando el mensaje a *${context.clientName}*? Respondé *sí* o *no*.`;
-    }
-
-    const { clientPhone, clientName, vehicleLabel } = context;
-    const msg = [
-      `⚙️ *Actualización de tu vehículo*`,
-      `*${vehicleLabel}*`,
-      ``,
-      `✅ Tu vehículo está *listo para retirar*.`,
-      `¡Gracias por confiar en nosotros!`,
-    ].join("\n");
-
-    void this.notifications.sendWhatsApp(clientPhone, msg);
-
-    await this.updateSession(workshopId, phone, "IDLE", null);
-    return `✅ Notificación enviada a *${clientName}*.\n\nEscribí *menu* para volver.`;
   }
 
-  private async handleRequestPhone(
-    workshopId: string,
-    phone: string,
-    rawText: string,
-    context: any,
-  ): Promise<string> {
-    const { clientId, clientName, vehicleLabel } = context;
-    const clean = rawText.replace(/[\s\-\(\)\+]/g, "");
+  // ─── Tool implementations ─────────────────────────────────────────────────
 
-    if (!/^\d{8,15}$/.test(clean)) {
-      return `⚠️ Ese número no parece válido. Pasámelo con código de área sin espacios, ej: *1112345678*`;
-    }
-
-    await this.prisma.client.updateMany({ where: { id: clientId, workshopId }, data: { phone: clean } });
-
-    const msg = [
-      `⚙️ *Actualización de tu vehículo*`,
-      `*${vehicleLabel}*`,
-      ``,
-      `✅ Tu vehículo está *listo para retirar*.`,
-      `¡Gracias por confiar en nosotros!`,
-    ].join("\n");
-
-    void this.notifications.sendWhatsApp(clean, msg);
-
-    await this.updateSession(workshopId, phone, "IDLE", null);
-    return `✅ Número guardado y notificación enviada a *${clientName}*.\n\nEscribí *menu* para volver.`;
-  }
-
-  private async handleVehicleAmbiguous(
-    workshopId: string,
-    phone: string,
-    text: string,
-    context: any,
-  ): Promise<string> {
-    const { candidates, intent, newStatus } = context;
-    const idx = parseInt(text) - 1;
-
-    if (isNaN(idx) || !candidates[idx]) {
-      return "⚠️ Número inválido. Elegí un número de la lista o escribí *menu*.";
-    }
-
-    const c = candidates[idx];
-
-    if (intent === "NOTIFY_CLIENT") {
-      if (!c.clientPhone) {
-        await this.updateSession(workshopId, phone, "REQUEST_PHONE", {
-          clientId: c.clientId, clientName: c.clientName, vehicleLabel: c.vehicleLabel,
-        });
-        return `*${c.clientName}* no tiene número registrado.\n¿Me pasás el WhatsApp para notificarlo?`;
-      }
-      await this.updateSession(workshopId, phone, "CONFIRM_NOTIFY", {
-        clientPhone: c.clientPhone, clientName: c.clientName, vehicleLabel: c.vehicleLabel,
-      });
-      return `¿Le mando un mensaje a *${c.clientName}* sobre su *${c.vehicleLabel}*?\n\nRespondé *sí* o *no*.`;
-    }
-
-    const targetStatus = newStatus ?? "DONE";
-    await this.updateSession(workshopId, phone, "CONFIRM_COMPLETE", {
-      orderId: c.id, clientId: c.clientId, clientName: c.clientName,
-      clientPhone: c.clientPhone, vehicleLabel: c.vehicleLabel, newStatus: targetStatus,
-    });
-    return `¿Cambio *${c.vehicleLabel}* de *${c.clientName}* a *${STATUS_LABELS[targetStatus]}*?\n\nRespondé *sí* o *no*.`;
-  }
-
-  // ─── Orders: today view ───────────────────────────────────────────────────
-
-  private async listTodayOrders(workshopId: string): Promise<string> {
+  private async toolListTodayOrders(workshopId: string): Promise<object> {
     const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
     const nowAR = new Date(Date.now() - AR_OFFSET_MS);
     const startAR = new Date(nowAR);
@@ -470,284 +313,318 @@ Ejemplos:
     const endAR = new Date(nowAR);
     endAR.setUTCHours(23, 59, 59, 999);
     const end = new Date(endAR.getTime() + AR_OFFSET_MS);
+
     const orders = await this.prisma.workOrder.findMany({
       where: {
         workshopId,
         status: { notIn: ["DELIVERED", "CANCELLED"] },
         OR: [
           { scheduledAt: { gte: start, lte: end } },
-          { createdAt: { gte: start } },
+          { scheduledAt: null, createdAt: { gte: start, lte: end } },
         ],
       },
       include: {
-        client: { select: { name: true } },
+        client: { select: { name: true, phone: true } },
         vehicle: { select: { brand: true, model: true, plate: true } },
+        assignedTo: { select: { name: true } },
       },
       orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
-      take: 10,
+      take: 20,
     });
 
-    if (!orders.length) return "📋 No hay órdenes activas hoy.\n\nEscribí *menu* para volver.";
-
-    const lines = ["📋 *Órdenes de hoy:*\n"];
-    orders.forEach((o, i) => {
-      lines.push(
-        `${i + 1}. ${o.client.name} — ${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})\n   📍 ${STATUS_LABELS[o.status]}\n   📝 ${o.description.slice(0, 60)}${o.description.length > 60 ? "..." : ""}`,
-      );
-    });
-    lines.push("\nEscribí *menu* para volver.");
-    return lines.join("\n");
+    return {
+      total: orders.length,
+      orders: orders.map((o) => ({
+        id: o.id,
+        client: o.client.name,
+        clientPhone: o.client.phone ?? null,
+        vehicle: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
+        plate: o.vehicle.plate,
+        status: o.status,
+        statusLabel: STATUS_LABELS[o.status] ?? o.status,
+        description: o.description,
+        scheduledAt: o.scheduledAt
+          ? o.scheduledAt.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Argentina/Buenos_Aires" })
+          : null,
+        assignedTo: o.assignedTo?.name ?? null,
+        estimatedCost: o.estimatedCost ?? null,
+        finalCost: o.finalCost ?? null,
+      })),
+    };
   }
 
-  // ─── Orders: status change flow (numbered menu) ───────────────────────────
+  private async toolFindOrdersByVehicle(workshopId: string, query: string): Promise<object> {
+    const words = query.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return { orders: [], message: "Query vacía" };
 
-  private async startOrderStatusFlow(workshopId: string, phone: string): Promise<string> {
+    const conditions = words.flatMap((word) => [
+      { vehicle: { brand: { contains: word, mode: "insensitive" as const } } },
+      { vehicle: { model: { contains: word, mode: "insensitive" as const } } },
+      { vehicle: { plate: { contains: word, mode: "insensitive" as const } } },
+    ]);
+
     const orders = await this.prisma.workOrder.findMany({
-      where: { workshopId, status: { notIn: ["DELIVERED", "CANCELLED"] } },
+      where: { workshopId, status: { notIn: ["DELIVERED", "CANCELLED"] }, OR: conditions },
       include: {
         client: { select: { name: true, phone: true } },
-        vehicle: { select: { plate: true } },
+        vehicle: { select: { brand: true, model: true, plate: true } },
+        assignedTo: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 5,
     });
 
-    if (!orders.length) return "📋 No hay órdenes activas.\n\nEscribí *menu* para volver.";
-
-    const orderSummaries = orders.map((o) => ({
-      id: o.id, client: o.client.name, clientPhone: o.client.phone,
-      plate: o.vehicle.plate, status: o.status,
-    }));
-
-    await this.updateSession(workshopId, phone, "ORDER_STATUS_SELECT", { orders: orderSummaries });
-
-    const lines = ["📋 *Órdenes activas* — elegí una:\n"];
-    orders.forEach((o, i) => {
-      lines.push(`${i + 1}. ${o.client.name} (${o.vehicle.plate}) — ${STATUS_LABELS[o.status]}`);
-    });
-    lines.push("\nRespondé con el número de la orden:");
-    return lines.join("\n");
+    return {
+      total: orders.length,
+      orders: orders.map((o) => ({
+        id: o.id,
+        client: o.client.name,
+        clientPhone: o.client.phone ?? null,
+        vehicle: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
+        plate: o.vehicle.plate,
+        status: o.status,
+        statusLabel: STATUS_LABELS[o.status] ?? o.status,
+        description: o.description,
+        estimatedCost: o.estimatedCost ?? null,
+        finalCost: o.finalCost ?? null,
+        assignedTo: o.assignedTo?.name ?? null,
+        mechanicNotes: o.mechanicNotes ?? null,
+      })),
+    };
   }
 
-  private async handleOrderStatusSelect(
-    workshopId: string,
-    phone: string,
-    text: string,
-    context: { orders: { id: string; client: string; clientPhone: string; plate: string; status: string }[] } | null,
-  ): Promise<string> {
-    const orders = context?.orders ?? [];
-    const idx = parseInt(text) - 1;
-    if (isNaN(idx) || !orders[idx]) {
-      return "⚠️ Número inválido. Respondé con el número de la orden o escribí *menu*.";
-    }
-    const order = orders[idx];
-    await this.updateSession(workshopId, phone, "ORDER_STATUS_CHANGE", {
-      orderId: order.id, clientPhone: order.clientPhone,
-    });
-    const lines = [
-      `*${order.client}* (${order.plate})\nEstado actual: *${STATUS_LABELS[order.status]}*\n\n¿Cambiar a?\n`,
-    ];
-    STATUS_KEYS.forEach((k, i) => lines.push(`${i + 1}. ${STATUS_LABELS[k]}`));
-    lines.push("\nRespondé con el número:");
-    return lines.join("\n");
-  }
-
-  private async handleOrderStatusChange(
-    workshopId: string,
-    phone: string,
-    text: string,
-    context: { orderId: string; clientPhone?: string } | null,
-  ): Promise<string> {
-    const idx = parseInt(text) - 1;
-    if (isNaN(idx) || !STATUS_KEYS[idx]) {
-      return "⚠️ Número inválido. Intentá de nuevo o escribí *menu*.";
-    }
-    const newStatus = STATUS_KEYS[idx];
-    const orderId = context?.orderId;
-    if (!orderId) {
-      await this.updateSession(workshopId, phone, "IDLE", null);
-      return "⚠️ Sesión perdida. Escribí *menu* para volver.";
-    }
-
-    await this.prisma.workOrder.updateMany({
-      where: { id: orderId, workshopId },
-      data: {
-        status: newStatus as any,
-        ...(newStatus === "IN_PROGRESS" ? { startedAt: new Date() } : {}),
-        ...((newStatus === "DONE" || newStatus === "DELIVERED") ? { completedAt: new Date() } : {}),
-      },
-    });
-
-    const notifMsg = STATUS_NOTIFY_MSG[newStatus];
-    if (notifMsg && context?.clientPhone) {
-      void this.notifications.sendWhatsApp(context.clientPhone, notifMsg);
-    }
-
-    await this.updateSession(workshopId, phone, "IDLE", null);
-    return `✅ Estado actualizado a *${STATUS_LABELS[newStatus]}*.\n\nEscribí *menu* para volver.`;
-  }
-
-  // ─── Orders: add note flow ─────────────────────────────────────────────────
-
-  private async startAddNoteFlow(workshopId: string, phone: string): Promise<string> {
-    const orders = await this.prisma.workOrder.findMany({
-      where: { workshopId, status: { notIn: ["DELIVERED", "CANCELLED"] } },
-      include: {
-        client: { select: { name: true } },
-        vehicle: { select: { plate: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    });
-
-    if (!orders.length) return "📋 No hay órdenes activas.\n\nEscribí *menu* para volver.";
-
-    const orderSummaries = orders.map((o) => ({
-      id: o.id, client: o.client.name, plate: o.vehicle.plate,
-    }));
-
-    await this.updateSession(workshopId, phone, "NOTE_ORDER_SELECT", { orders: orderSummaries });
-
-    const lines = ["📋 *Elegí la orden para agregar una nota:*\n"];
-    orders.forEach((o, i) => lines.push(`${i + 1}. ${o.client.name} (${o.vehicle.plate})`));
-    lines.push("\nRespondé con el número:");
-    return lines.join("\n");
-  }
-
-  private async handleNoteOrderSelect(
-    workshopId: string,
-    phone: string,
-    text: string,
-    context: { orders: { id: string; client: string; plate: string }[] } | null,
-  ): Promise<string> {
-    const orders = context?.orders ?? [];
-    const idx = parseInt(text) - 1;
-    if (isNaN(idx) || !orders[idx]) {
-      return "⚠️ Número inválido. Respondé con el número de la orden o escribí *menu*.";
-    }
-    const order = orders[idx];
-    await this.updateSession(workshopId, phone, "NOTE_TEXT_INPUT", {
-      orderId: order.id, orderLabel: `${order.client} (${order.plate})`,
-    });
-    return `📝 Escribí la nota para *${order.client}* (${order.plate}):`;
-  }
-
-  private async handleNoteTextInput(
-    workshopId: string,
-    phone: string,
-    text: string,
-    context: { orderId: string; orderLabel: string } | null,
-  ): Promise<string> {
-    if (!context?.orderId) {
-      await this.updateSession(workshopId, phone, "IDLE", null);
-      return "⚠️ Sesión perdida. Escribí *menu* para volver.";
-    }
-    await this.prisma.workOrder.updateMany({
-      where: { id: context.orderId, workshopId },
-      data: { mechanicNotes: text.trim().slice(0, 2000) },
-    });
-    await this.updateSession(workshopId, phone, "IDLE", null);
-    return `✅ Nota guardada en *${context.orderLabel}*.\n\nEscribí *menu* para volver.`;
-  }
-
-  // ─── Client search ────────────────────────────────────────────────────────
-
-  private async handleClientSearch(
-    workshopId: string,
-    phone: string,
-    _permissions: string[],
-    text: string,
-  ): Promise<string> {
+  private async toolFindClient(workshopId: string, query: string): Promise<object> {
     const clients = await this.prisma.client.findMany({
       where: {
         workshopId,
         OR: [
-          { name: { contains: text, mode: "insensitive" } },
-          { phone: { contains: text } },
-        ],
-      },
-      include: { _count: { select: { vehicles: true, workOrders: true } } },
-      take: 5,
-    });
-
-    await this.updateSession(workshopId, phone, "IDLE", null);
-
-    if (!clients.length) return `🔍 Sin resultados para "${text}".\n\nEscribí *menu* para volver.`;
-
-    const lines = [`🔍 *Resultados para "${text}":*\n`];
-    clients.forEach((c) => {
-      lines.push(
-        `👤 *${c.name}*\n   📱 ${c.phone}${c.email ? `\n   ✉️ ${c.email}` : ""}\n   🚗 ${c._count.vehicles} vehículo(s) · 📋 ${c._count.workOrders} orden(es)`,
-      );
-    });
-    lines.push("\nEscribí *menu* para volver.");
-    return lines.join("\n\n");
-  }
-
-  // ─── DB helpers ───────────────────────────────────────────────────────────
-
-  private findOrdersByVehicleQuery(workshopId: string, query: string) {
-    return this.prisma.workOrder.findMany({
-      where: {
-        workshopId,
-        status: { notIn: ["DELIVERED", "CANCELLED"] },
-        OR: [
-          { vehicle: { brand: { contains: query, mode: "insensitive" } } },
-          { vehicle: { model: { contains: query, mode: "insensitive" } } },
-          { vehicle: { plate: { contains: query, mode: "insensitive" } } },
+          { name: { contains: query, mode: "insensitive" } },
+          { phone: { contains: query } },
         ],
       },
       include: {
-        client: { select: { id: true, name: true, phone: true } },
+        _count: { select: { vehicles: true, workOrders: true } },
+        workOrders: {
+          where: { status: { notIn: ["DELIVERED", "CANCELLED"] } },
+          select: {
+            id: true,
+            description: true,
+            status: true,
+            vehicle: { select: { plate: true, brand: true, model: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        },
+      },
+      take: 5,
+    });
+
+    return {
+      total: clients.length,
+      clients: clients.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email ?? null,
+        totalVehicles: c._count.vehicles,
+        totalOrders: c._count.workOrders,
+        activeOrders: c.workOrders.map((o) => ({
+          id: o.id,
+          vehicle: `${o.vehicle.brand} ${o.vehicle.model} (${o.vehicle.plate})`,
+          description: o.description,
+          status: o.status,
+          statusLabel: STATUS_LABELS[o.status] ?? o.status,
+        })),
+      })),
+    };
+  }
+
+  private async toolUpdateOrderStatus(
+    workshopId: string,
+    orderId: string,
+    status: string,
+  ): Promise<object> {
+    const validStatuses = Object.keys(STATUS_LABELS);
+    if (!validStatuses.includes(status)) {
+      return { success: false, error: `Estado inválido: ${status}. Válidos: ${validStatuses.join(", ")}` };
+    }
+
+    const updated = await this.prisma.workOrder.updateMany({
+      where: { id: orderId, workshopId },
+      data: {
+        status: status as any,
+        ...(status === "IN_PROGRESS" ? { startedAt: new Date() } : {}),
+        ...(status === "DONE" || status === "DELIVERED" ? { completedAt: new Date() } : {}),
+      },
+    });
+
+    if (!updated.count) {
+      return { success: false, error: "Orden no encontrada o no pertenece a este taller" };
+    }
+
+    // Fetch updated order for confirmation details
+    const order = await this.prisma.workOrder.findFirst({
+      where: { id: orderId, workshopId },
+      include: {
+        client: { select: { name: true, phone: true } },
         vehicle: { select: { brand: true, model: true, plate: true } },
       },
-      orderBy: { createdAt: "desc" },
-      take: 5,
+    });
+
+    return {
+      success: true,
+      statusLabel: STATUS_LABELS[status],
+      orderId,
+      client: order?.client.name,
+      clientPhone: order?.client.phone ?? null,
+      vehicle: order ? `${order.vehicle.brand} ${order.vehicle.model} (${order.vehicle.plate})` : null,
+    };
+  }
+
+  private async toolAddNote(workshopId: string, orderId: string, note: string): Promise<object> {
+    if (!note.trim()) return { success: false, error: "La nota está vacía" };
+
+    const existing = await this.prisma.workOrder.findFirst({
+      where: { id: orderId, workshopId },
+      select: { mechanicNotes: true },
+    });
+
+    if (!existing) return { success: false, error: "Orden no encontrada" };
+
+    const newNote = note.trim().slice(0, 1800);
+    const combined = existing.mechanicNotes
+      ? `${existing.mechanicNotes}\n---\n${newNote}`
+      : newNote;
+
+    await this.prisma.workOrder.updateMany({
+      where: { id: orderId, workshopId },
+      data: { mechanicNotes: combined.slice(-2000) },
+    });
+
+    return { success: true, message: "Nota guardada correctamente" };
+  }
+
+  private async toolSendClientNotification(workshopId: string, orderId: string): Promise<object> {
+    const order = await this.prisma.workOrder.findFirst({
+      where: { id: orderId, workshopId },
+      include: {
+        client: { select: { name: true, phone: true } },
+        vehicle: { select: { brand: true, model: true, plate: true } },
+      },
+    });
+
+    if (!order) return { success: false, error: "Orden no encontrada" };
+    if (!order.client.phone) {
+      return { success: false, error: `${order.client.name} no tiene número de teléfono registrado` };
+    }
+
+    const vehicleLabel = `${order.vehicle.brand} ${order.vehicle.model} (${order.vehicle.plate})`;
+    const msg = [
+      `⚙️ *Actualización de tu vehículo*`,
+      `*${vehicleLabel}*`,
+      ``,
+      `✅ Tu vehículo está *listo para retirar*.`,
+      `¡Gracias por confiar en nosotros!`,
+    ].join("\n");
+
+    void this.notifications.sendWhatsApp(order.client.phone, msg);
+
+    return {
+      success: true,
+      sentTo: order.client.name,
+      phone: order.client.phone,
+    };
+  }
+
+  private async toolSearchTechnicalGuides(workshopId: string, query: string): Promise<object> {
+    const stopWords = new Set([
+      "como", "cómo", "que", "qué", "el", "la", "los", "las", "un", "una",
+      "de", "del", "en", "con", "por", "para", "se", "es", "son", "hay",
+      "hacer", "cambiar", "revisar", "cuanto", "cuánto",
+    ]);
+
+    const keywords = query
+      .toLowerCase()
+      .replace(/[¿?¡!.,;:]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !stopWords.has(w))
+      .slice(0, 8);
+
+    if (!keywords.length) return { found: 0, guides: [], message: "No se encontraron palabras clave útiles" };
+
+    const guides = await this.prisma.technicalGuide.findMany({
+      where: {
+        workshopId,
+        OR: keywords.flatMap((kw) => [
+          { title: { contains: kw, mode: "insensitive" } },
+          { vehicle: { contains: kw, mode: "insensitive" } },
+          { category: { contains: kw, mode: "insensitive" } },
+          { content: { contains: kw, mode: "insensitive" } },
+        ]),
+      },
+      take: 3,
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return {
+      found: guides.length,
+      guides: guides.map((g) => ({
+        title: g.title,
+        vehicle: g.vehicle ?? null,
+        category: g.category ?? null,
+        content: g.content.length > 3500
+          ? `${g.content.slice(0, 3500)}\n[…contenido truncado]`
+          : g.content,
+      })),
+    };
+  }
+
+  // ─── Session history ──────────────────────────────────────────────────────
+
+  private async loadHistory(workshopId: string, phone: string): Promise<any[]> {
+    const session = await this.prisma.botSession.findUnique({
+      where: { workshopId_phone: { workshopId, phone } },
+    });
+    const ctx = session?.context as any;
+    if (Array.isArray(ctx?.history)) return ctx.history;
+    return [];
+  }
+
+  private async saveHistory(workshopId: string, phone: string, history: any[]) {
+    await this.prisma.botSession.upsert({
+      where: { workshopId_phone: { workshopId, phone } },
+      update: { step: "IDLE", context: { history } },
+      create: { workshopId, phone, step: "IDLE", context: { history } },
     });
   }
 
-  // ─── Menu ─────────────────────────────────────────────────────────────────
-
-  private mainMenu(name: string, permissions: string[]): string {
-    const lines = [`👋 Hola *${name}*! ¿Qué necesitás?\n`];
-    const opts = this.buildMenuOptions(permissions);
-    const labels: Record<string, string> = {
-      orders_today:  "Ver órdenes de hoy",
-      order_status:  "Cambiar estado de una orden",
-      add_note:      "Agregar nota a una orden",
-      client_search: "Buscar cliente",
-    };
-    opts.forEach((opt, i) => lines.push(`${i + 1}️⃣ ${labels[opt]}`));
-    lines.push(`\nTambién podés escribir comandos de voz:\n_"Se terminó el corola"_\n_"Notificá al cliente del Focus"_\n_"Ponele en progreso al BMW"_`);
-    lines.push("\nEscribí *menu* para ver esto de nuevo.");
-    return lines.join("\n");
-  }
-
-  private buildMenuOptions(permissions: string[]): string[] {
-    const opts: string[] = [];
-    if (permissions.includes(Permission.VIEW_ORDERS)) opts.push("orders_today");
-    if (permissions.includes(Permission.CHANGE_ORDER_STATUS)) opts.push("order_status");
-    if (permissions.includes(Permission.CHANGE_ORDER_STATUS)) opts.push("add_note");
-    if (permissions.includes(Permission.VIEW_CLIENTS)) opts.push("client_search");
-    return opts;
-  }
-
-  // ─── Session helpers ──────────────────────────────────────────────────────
-
-  private async getOrCreateSession(workshopId: string, phone: string) {
-    return this.prisma.botSession.upsert({
+  private async clearHistory(workshopId: string, phone: string) {
+    await this.prisma.botSession.upsert({
       where: { workshopId_phone: { workshopId, phone } },
-      update: {},
+      update: { step: "IDLE", context: undefined },
       create: { workshopId, phone, step: "IDLE" },
     });
   }
 
-  private async updateSession(workshopId: string, phone: string, step: string, context: any) {
-    if (!phone) return;
-    await this.prisma.botSession.upsert({
-      where: { workshopId_phone: { workshopId, phone } },
-      update: { step, context: context ?? undefined },
-      create: { workshopId, phone, step, context: context ?? undefined },
-    });
+  // ─── Menu shortcut ────────────────────────────────────────────────────────
+
+  private mainMenu(name: string, permissions: string[]): string {
+    const lines = [
+      `👋 Hola *${name}*! Soy tu asistente de taller.`,
+      ``,
+      `Podés hablarme en lenguaje natural:`,
+      `_"Se terminó el corolla"_`,
+      `_"¿Qué órdenes tenemos hoy?"_`,
+      `_"Buscá a Juan García"_`,
+      `_"¿Cómo cambio los frenos de un Corsa?"_`,
+      `_"Notificá al cliente del Focus"_`,
+    ];
+
+    if (!permissions.includes(Permission.CHANGE_ORDER_STATUS)) {
+      lines.push(``, `ℹ️ Solo tenés permiso de lectura.`);
+    }
+
+    lines.push(``, `Escribí *menu* para ver este mensaje de nuevo.`);
+    return lines.join("\n");
   }
 }

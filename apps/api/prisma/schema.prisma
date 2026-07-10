@@ -28,6 +28,8 @@ model Workshop {
   employees        WorkshopEmployee[]
   botSessions      BotSession[]
   technicalGuides  TechnicalGuide[]
+  payments         Payment[]
+  parts            Part[]
 
   @@map("workshops")
 }
@@ -63,15 +65,17 @@ model Vehicle {
   clientId   String
   client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  brand     String
-  model     String
-  year      Int
-  plate     String
-  vin       String?
-  color     String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  brand           String
+  model           String
+  year            Int
+  plate           String
+  vin             String?
+  color           String?
+  notes           String?
+  nextServiceDate DateTime?
+  nextServiceKm   Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   workOrders WorkOrder[]
 
@@ -90,19 +94,25 @@ model WorkOrder {
   vehicleId  String
   vehicle    Vehicle         @relation(fields: [vehicleId], references: [id])
 
-  status        WorkOrderStatus @default(PENDING)
-  paymentStatus PaymentStatus   @default(UNPAID)
-  description   String
-  mechanicNotes String?
-  estimatedCost Decimal?        @db.Decimal(10, 2)
-  finalCost     Decimal?        @db.Decimal(10, 2)
-  scheduledAt   DateTime?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  status         WorkOrderStatus @default(PENDING)
+  paymentStatus  PaymentStatus   @default(UNPAID)
+  paymentMethod  PaymentMethod?
+  description    String
+  mechanicNotes  String?
+  estimatedCost  Decimal?        @db.Decimal(10, 2)
+  finalCost      Decimal?        @db.Decimal(10, 2)
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  budgetApproved Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
-  items WorkOrderItem[]
+  assignedToId  String?
+  assignedTo    WorkshopEmployee? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  items    WorkOrderItem[]
+  payments Payment[]
 
   @@index([workshopId])
   @@index([workshopId, status])
@@ -147,6 +157,13 @@ enum PaymentStatus {
   PAID
 }
 
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  MIXED
+}
+
 // ─── Technical Guides ────────────────────────────────────────────────────────
 
 model TechnicalGuide {
@@ -179,8 +196,9 @@ model WorkshopEmployee {
   name        String
   permissions String[]           // e.g. ["VIEW_ORDERS","EDIT_ORDERS"]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  workOrders WorkOrder[]
 
   @@unique([workshopId, email])
   @@map("workshop_employees")
@@ -228,4 +246,45 @@ model Message {
   @@index([workshopId, phone])
   @@index([workshopId, createdAt(sort: Desc)])
   @@map("messages")
+}
+
+// ─── Payment records ─────────────────────────────────────────────────────────
+
+model Payment {
+  id          String        @id @default(uuid())
+  workshopId  String
+  workshop    Workshop      @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  workOrderId String
+  workOrder   WorkOrder     @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod
+  note      String?
+  createdAt DateTime      @default(now())
+
+  @@index([workOrderId])
+  @@map("payments")
+}
+
+// ─── Parts Inventory ─────────────────────────────────────────────────────────
+
+model Part {
+  id          String   @id @default(uuid())
+  workshopId  String
+  workshop    Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  sku         String?
+  stock       Decimal  @db.Decimal(10, 3) @default(0)
+  minStock    Decimal  @db.Decimal(10, 3) @default(0)
+  costPrice   Decimal? @db.Decimal(10, 2)
+  sellPrice   Decimal? @db.Decimal(10, 2)
+  unit        String   @default("unidad")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workshopId])
+  @@map("parts")
 }

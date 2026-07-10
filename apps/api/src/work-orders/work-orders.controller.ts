@@ -16,6 +16,7 @@ import {
   UpdateWorkOrderStatusSchema,
   CreateWorkOrderItemSchema,
   UpdateWorkOrderItemSchema,
+  CreatePaymentSchema,
 } from "@mecanico/shared";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { Permissions } from "../common/decorators/permissions.decorator";
@@ -44,6 +45,10 @@ export class WorkOrdersController {
     @Query("paymentStatus") paymentStatus?: string,
     @Query("search") search?: string,
     @Query("scheduledDate") scheduledDate?: string,
+    @Query("scheduledFrom") scheduledFrom?: string,
+    @Query("scheduledTo") scheduledTo?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
     return this.workOrdersService.findAll(req.auth.workshopId, {
       clientId,
@@ -52,6 +57,10 @@ export class WorkOrdersController {
       paymentStatus,
       search,
       scheduledDate,
+      scheduledFrom,
+      scheduledTo,
+      page:  page  ? parseInt(page,  10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
     });
   }
 
@@ -116,6 +125,22 @@ export class WorkOrdersController {
     @Param("itemId") itemId: string,
   ) {
     return this.workOrdersService.removeItem(req.auth.workshopId, id, itemId);
+  }
+
+  @Permissions(Permission.VIEW_ORDERS)
+  @Get(":id/payments")
+  getPayments(@Req() req: any, @Param("id") id: string) {
+    return this.workOrdersService.getPayments(req.auth.workshopId, id);
+  }
+
+  @Permissions(Permission.EDIT_ORDERS)
+  @Post(":id/payments")
+  addPayment(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(CreatePaymentSchema)) dto: unknown,
+  ) {
+    return this.workOrdersService.addPayment(req.auth.workshopId, id, dto as any);
   }
 
   @Permissions(Permission.SEND_WHATSAPP)

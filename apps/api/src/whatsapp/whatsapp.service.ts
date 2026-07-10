@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PrismaService } from "../prisma/prisma.service";
 import { BotService } from "./bot.service";
+import { ClientBotService } from "./client-bot.service";
 import axios from "axios";
 
 @Injectable()
@@ -13,6 +14,7 @@ export class WhatsAppService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly botService: BotService,
+    private readonly clientBot: ClientBotService,
   ) {}
 
   private get evolutionUrl() {
@@ -81,32 +83,48 @@ export class WhatsAppService {
       },
     });
 
-    // Auto-reply to client if enabled (once per hour per phone)
-    await this.maybeAutoReply(workshopId, phone);
+    // AI or auto-reply to client if enabled
+    await this.maybeAutoReply(workshopId, phone, client?.id ?? null, body);
 
     return { ok: true, routed: "inbox" };
   }
 
-  private async maybeAutoReply(workshopId: string, phone: string): Promise<void> {
+  private async maybeAutoReply(
+    workshopId: string,
+    phone: string,
+    clientId: string | null,
+    messageBody: string,
+  ): Promise<void> {
     const workshop = await this.prisma.workshop.findUnique({
       where: { id: workshopId },
-      select: { botAutoReply: true, botAutoReplyMsg: true },
+      select: { botAutoReply: true, botAutoReplyMsg: true, name: true, phone: true },
     });
     if (!workshop?.botAutoReply) return;
 
-    // Rate-limit: skip if we sent an auto-reply in the last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentAutoReply = await this.prisma.message.findFirst({
+    // Rate-limit: 15 minutes between bot replies per phone
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const recentReply = await this.prisma.message.findFirst({
       where: {
         workshopId,
         phone,
         direction: "OUTBOUND",
-        createdAt: { gte: oneHourAgo },
+        createdAt: { gte: fifteenMinAgo },
       },
     });
-    if (recentAutoReply) return;
+    if (recentReply) return;
 
-    const msg = workshop.botAutoReplyMsg ?? "¡Hola! 👋 Gracias por escribirnos. En breve te atendemos.";
+    // Try AI-powered reply first
+    const aiReply = await this.clientBot.generateReply(
+      workshopId,
+      workshop.name,
+      workshop.phone ?? null,
+      clientId,
+      phone,
+      messageBody,
+    );
+
+    const msg = aiReply ?? workshop.botAutoReplyMsg ?? "¡Hola! 👋 Gracias por escribirnos. En breve te atendemos.";
+
     await this.sendRaw(phone, msg);
     await this.prisma.message.create({
       data: { workshopId, phone, direction: "OUTBOUND", body: msg },

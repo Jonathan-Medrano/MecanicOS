@@ -8,11 +8,17 @@ import { api } from "@/lib/api";
 import { Field, inputClass } from "@/components/ui/field";
 import { toast } from "sonner";
 
+const phoneRegex = /^\+?[\d\s\-().]{7,20}$/;
+
 const schema = z.object({
-  name: z.string().min(2, "Mínimo 2 caracteres"),
-  phone: z.string().min(8, "Teléfono inválido"),
+  name: z.string().min(2, "Mínimo 2 caracteres").max(100),
+  phone: z
+    .string()
+    .min(7, "Mínimo 7 dígitos")
+    .max(20, "Máximo 20 caracteres")
+    .regex(phoneRegex, "Solo dígitos, espacios, guiones y paréntesis"),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
-  notes: z.string().optional(),
+  notes: z.string().max(500, "Máximo 500 caracteres").optional(),
 });
 
 type FormValues = z.infer<typeof schema>;

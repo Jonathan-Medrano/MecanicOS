@@ -23,4 +23,20 @@ export class PdfController {
     });
     res.send(buffer);
   }
+
+  @Permissions(Permission.VIEW_ORDERS)
+  @Get("work-orders/:id/budget")
+  async budgetPdf(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.pdfService.generateBudgetPdf(req.auth.workshopId, id);
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="presupuesto-${id.slice(0, 8)}.pdf"`,
+      "Content-Length": buffer.length,
+    });
+    res.send(buffer);
+  }
 }

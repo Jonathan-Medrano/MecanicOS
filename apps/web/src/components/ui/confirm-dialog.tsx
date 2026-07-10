@@ -24,13 +24,13 @@ export function ConfirmDialog({
   return (
     <Modal open={open} onClose={onClose} title={title}>
       {description && (
-        <p className="text-sm text-gray-600 mb-5">{description}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">{description}</p>
       )}
       <div className="flex justify-end gap-2">
         <button
           onClick={onClose}
           disabled={loading}
-          className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
         >
           Cancelar
         </button>

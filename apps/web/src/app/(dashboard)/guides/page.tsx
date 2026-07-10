@@ -50,38 +50,38 @@ function GuideForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-blue-200 p-5 space-y-4 shadow-sm">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-blue-200 dark:border-blue-800 p-5 space-y-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-gray-800">Nueva guía técnica</p>
-        <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Nueva guía técnica</p>
+        <button onClick={() => setOpen(false)} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">Cancelar</button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Título *</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Título *</label>
           <input
             type="text"
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder="Ej: Cambio de aceite de motor"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Vehículo</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Vehículo</label>
           <input
             type="text"
             value={form.vehicle}
             onChange={(e) => setForm((f) => ({ ...f, vehicle: e.target.value }))}
             placeholder="Ej: Toyota Corolla 2019"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Categoría</label>
           <select
             value={form.category}
             onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100"
           >
             <option value="">Sin categoría</option>
             {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -89,13 +89,13 @@ function GuideForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Contenido de la guía *</label>
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Contenido de la guía *</label>
         <textarea
           value={form.content}
           onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
           rows={8}
           placeholder={`Pegá o escribí el procedimiento técnico paso a paso.\n\nEj:\n1. Levantar el vehículo con el gato hidráulico\n2. Ubicar el tapón del cárter...\n3. ...`}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y dark:bg-gray-800 dark:text-gray-100"
         />
       </div>
       <button
@@ -130,17 +130,17 @@ function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
   });
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
       <div
-        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         onClick={() => setExpanded((v) => !v)}
       >
         <BookOpen size={16} className="text-blue-500 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">{guide.title}</p>
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{guide.title}</p>
           <div className="flex flex-wrap items-center gap-2 mt-0.5">
             {guide.vehicle && (
-              <span className="text-xs text-gray-500">{guide.vehicle}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{guide.vehicle}</span>
             )}
             {guide.category && (
               <span className="text-[10px] font-semibold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
@@ -153,24 +153,24 @@ function GuideRow({ guide, canEdit }: { guide: Guide; canEdit: boolean }) {
           {canEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
-              className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors"
+              className="text-gray-400 dark:text-gray-500 hover:text-red-500 p-1 rounded transition-colors"
             >
               <Trash2 size={14} />
             </button>
           )}
-          {expanded ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
+          {expanded ? <ChevronUp size={15} className="text-gray-400 dark:text-gray-500" /> : <ChevronDown size={15} className="text-gray-400 dark:text-gray-500" />}
         </div>
       </div>
       {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-100">
+        <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-800">
           {detailError ? (
             <p className="mt-3 text-xs text-red-400">Error al cargar el contenido.</p>
           ) : detail ? (
-            <pre className="mt-3 text-xs text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 rounded-lg p-3 max-h-64 overflow-y-auto">
+            <pre className="mt-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono bg-gray-50 dark:bg-gray-800 rounded-lg p-3 max-h-64 overflow-y-auto">
               {detail.content}
             </pre>
           ) : (
-            <p className="mt-3 text-xs text-gray-400">Cargando...</p>
+            <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">Cargando...</p>
           )}
         </div>
       )}
@@ -203,20 +203,20 @@ export default function GuidesPage() {
     <div className="space-y-5 max-w-3xl">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Guías técnicas</h1>
-          <p className="text-xs text-gray-400 mt-0.5">El asistente de IA las usa para responder preguntas técnicas</p>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Guías técnicas</h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">El asistente de IA las usa para responder preguntas técnicas</p>
         </div>
         {canEdit && <GuideForm onSuccess={() => {}} />}
       </div>
 
       <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar guías..."
-          className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
         />
       </div>
 
@@ -225,11 +225,11 @@ export default function GuidesPage() {
       ) : isLoading ? (
         <div className="space-y-2 animate-pulse">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-14 bg-gray-200 rounded-lg" />
+            <div key={i} className="h-14 bg-gray-200 dark:bg-gray-700 rounded-lg" />
           ))}
         </div>
       ) : !guides?.length ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
           <BookOpen size={32} className="mx-auto mb-3 opacity-40" />
           <p className="text-sm">
             {search ? "Sin resultados" : "No hay guías cargadas todavía"}

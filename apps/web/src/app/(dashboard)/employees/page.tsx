@@ -72,10 +72,10 @@ function EmployeeForm({ employee, onSuccess }: { employee?: Employee; onSuccess:
     <div className="space-y-4">
       {!isEdit && (
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => setPermissions(PRESETS.mechanic)} className="text-xs border border-gray-300 rounded-md px-2 py-2 hover:bg-gray-50">
+          <button onClick={() => setPermissions(PRESETS.mechanic)} className="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
             Preset: Mecánico
           </button>
-          <button onClick={() => setPermissions(PRESETS.receptionist)} className="text-xs border border-gray-300 rounded-md px-2 py-2 hover:bg-gray-50">
+          <button onClick={() => setPermissions(PRESETS.receptionist)} className="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
             Preset: Recepcionista
           </button>
         </div>
@@ -84,42 +84,42 @@ function EmployeeForm({ employee, onSuccess }: { employee?: Employee; onSuccess:
       {!isEdit && (
         <>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre *</label>
             <input value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-gray-800 dark:text-gray-100"
               placeholder="Juan Pérez" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
             <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-gray-800 dark:text-gray-100"
               placeholder="juan@taller.com" />
-            <p className="text-xs text-gray-400 mt-1">El empleado accederá con este email.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">El empleado accederá con este email.</p>
           </div>
         </>
       )}
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Teléfono WhatsApp</label>
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teléfono WhatsApp</label>
         <input value={phone} onChange={(e) => setPhone(e.target.value)}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-gray-800 dark:text-gray-100"
           placeholder="+5491112345678" />
-        <p className="text-xs text-gray-400 mt-1">Si lo agregás, podrá usar el bot de WhatsApp.</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Si lo agregás, podrá usar el bot de WhatsApp.</p>
       </div>
 
       <div>
-        <p className="text-xs font-medium text-gray-700 mb-2">Permisos</p>
+        <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Permisos</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {ALL_PERMISSIONS.map((p) => (
             <label key={p.key} className="flex items-center gap-2 cursor-pointer py-0.5">
               <input type="checkbox" checked={permissions.includes(p.key)} onChange={() => togglePerm(p.key)} className="rounded" />
-              <span className="text-sm text-gray-700">{p.label}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">{p.label}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>}
+      {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400 rounded-md px-3 py-2">{error}</p>}
 
       <div className="flex justify-end pt-2">
         <button
@@ -158,7 +158,7 @@ export default function EmployeesPage() {
 
   if (!canManage) {
     return (
-      <div className="text-center py-20 text-gray-400 text-sm">
+      <div className="text-center py-20 text-gray-400 dark:text-gray-500 text-sm">
         No tenés permisos para gestionar empleados.
       </div>
     );
@@ -166,8 +166,8 @@ export default function EmployeesPage() {
 
   if (isError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center mt-6">
-        <p className="text-sm text-red-700 font-medium">No se pudieron cargar los empleados.</p>
+      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center mt-6">
+        <p className="text-sm text-red-700 dark:text-red-400 font-medium">No se pudieron cargar los empleados.</p>
       </div>
     );
   }
@@ -176,8 +176,8 @@ export default function EmployeesPage() {
     <div>
       <div className="flex items-start justify-between mb-6 gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Empleados</h1>
-          <p className="text-sm text-gray-500 mt-1 hidden sm:block">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">Empleados</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 hidden sm:block">
             Acceso a la web y al bot de WhatsApp según sus permisos.
           </p>
         </div>
@@ -194,29 +194,29 @@ export default function EmployeesPage() {
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 h-24 animate-pulse" />
+            <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 h-24 animate-pulse" />
           ))}
         </div>
       ) : (
         <div className="space-y-3">
           {employees?.map((emp) => (
-            <div key={emp.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-start justify-between gap-4">
+            <div key={emp.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-gray-900">{emp.name}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{emp.name}</p>
                   {emp.clerkUserId ? (
-                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Activo</span>
+                    <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 px-1.5 py-0.5 rounded-full">Activo</span>
                   ) : (
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">Pendiente de registro</span>
+                    <span className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 px-1.5 py-0.5 rounded-full">Pendiente de registro</span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">{emp.email}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{emp.email}</p>
                 {emp.phone && (
-                  <p className="text-xs text-gray-400">{emp.phone} (WhatsApp)</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{emp.phone} (WhatsApp)</p>
                 )}
                 <div className="flex flex-wrap gap-1 mt-2">
                   {emp.permissions.map((p) => (
-                    <span key={p} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                    <span key={p} className="text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">
                       {ALL_PERMISSIONS.find((x) => x.key === p)?.label ?? p}
                     </span>
                   ))}
@@ -225,14 +225,14 @@ export default function EmployeesPage() {
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={() => setEditTarget(emp)}
-                  className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-700 rounded-md hover:bg-gray-100"
+                  className="flex items-center justify-center w-9 h-9 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Editar"
                 >
                   <Pencil size={15} />
                 </button>
                 <button
                   onClick={() => setDeleteTarget(emp)}
-                  className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                  className="flex items-center justify-center w-9 h-9 text-gray-400 dark:text-gray-500 hover:text-red-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30"
                   title="Eliminar"
                 >
                   <Trash2 size={15} />
@@ -241,7 +241,7 @@ export default function EmployeesPage() {
             </div>
           ))}
           {!employees?.length && (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-400 dark:text-gray-500">
               <p className="text-sm">Todavía no hay empleados.</p>
               <button
                 onClick={() => setCreateOpen(true)}

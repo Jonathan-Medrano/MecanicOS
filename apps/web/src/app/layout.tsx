@@ -3,7 +3,8 @@ import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthTokenSync } from "@/providers/auth-provider";
-import { Toaster } from "sonner";
+import { ThemeProvider } from "@/providers/theme-provider";
+import { ThemedToaster } from "@/components/ui/themed-toaster";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -49,14 +50,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${geist.variable} h-full antialiased`}>
-      <body className="min-h-full bg-gray-50">
-        <ClerkProvider afterSignOutUrl="/sign-in">
-          <QueryProvider>
-            <AuthTokenSync>{children}</AuthTokenSync>
-            <Toaster position="bottom-right" richColors />
-          </QueryProvider>
-        </ClerkProvider>
+    <html lang="es" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+        <ThemeProvider>
+          <ClerkProvider afterSignOutUrl="/sign-in">
+            <QueryProvider>
+              <AuthTokenSync>{children}</AuthTokenSync>
+              <ThemedToaster />
+            </QueryProvider>
+          </ClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

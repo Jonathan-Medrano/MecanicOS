@@ -40,27 +40,46 @@ export class ClientsService {
   }
 
   async findOne(workshopId: string, id: string) {
-    const client = await this.prisma.client.findFirst({
-      where: { id, workshopId },
-      include: {
-        vehicles: true,
-        workOrders: {
-          orderBy: { createdAt: "desc" },
-          take: 20,
-          select: {
-            id: true,
-            description: true,
-            status: true,
-            createdAt: true,
-            estimatedCost: true,
-            finalCost: true,
-            vehicle: { select: { brand: true, model: true, plate: true } },
+    const [client, unpaidOrders] = await Promise.all([
+      this.prisma.client.findFirst({
+        where: { id, workshopId },
+        include: {
+          vehicles: true,
+          workOrders: {
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: {
+              id: true,
+              description: true,
+              status: true,
+              paymentStatus: true,
+              createdAt: true,
+              estimatedCost: true,
+              finalCost: true,
+              vehicle: { select: { brand: true, model: true, plate: true } },
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.workOrder.findMany({
+        where: {
+          clientId: id,
+          workshopId,
+          paymentStatus: { in: ["UNPAID", "PARTIAL"] },
+          status: { notIn: ["CANCELLED"] },
+        },
+        select: { finalCost: true, estimatedCost: true },
+      }),
+    ]);
+
     if (!client) throw new NotFoundException("Client not found");
-    return client;
+
+    const outstandingBalance = unpaidOrders.reduce((sum, o) => {
+      const cost = o.finalCost ?? o.estimatedCost;
+      return sum + (cost ? Number(cost) : 0);
+    }, 0);
+
+    return { ...client, outstandingBalance };
   }
 
   async update(workshopId: string, id: string, dto: UpdateClientDto) {
