@@ -27,6 +27,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <ThemeToggle />
         </header>
 
+        {/* Desktop top bar */}
+        <header className="hidden md:flex items-center justify-end px-6 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shrink-0 z-10">
+          <ThemeToggle />
+        </header>
+
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <OnboardingBanner />
           {children}
