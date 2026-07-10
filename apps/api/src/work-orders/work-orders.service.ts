@@ -7,6 +7,8 @@ import {
   CreateWorkOrderItemDto,
   UpdateWorkOrderItemDto,
   CreatePaymentDto,
+  WORK_ORDER_STATUS_LABELS,
+  AR_OFFSET_MS,
 } from "@mecanico/shared";
 
 function buildStatusMessage(status: string, orderId: string): string | undefined {
@@ -67,7 +69,6 @@ export class WorkOrdersService {
 
     let scheduledAtFilter: any = {};
     if (filters?.scheduledDate === "today") {
-      const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
       const nowAR  = new Date(Date.now() - AR_OFFSET_MS);
       const startAR = new Date(nowAR); startAR.setUTCHours(0, 0, 0, 0);
       const endAR   = new Date(nowAR); endAR.setUTCHours(23, 59, 59, 999);
@@ -230,14 +231,7 @@ export class WorkOrdersService {
   async notifyClient(workshopId: string, id: string) {
     const order = await this.findOne(workshopId, id);
 
-    const STATUS_LABELS: Record<string, string> = {
-      PENDING: "Pendiente",
-      IN_PROGRESS: "En progreso",
-      WAITING_PARTS: "Esperando piezas",
-      DONE: "Listo para retirar ✅",
-      DELIVERED: "Entregado",
-      CANCELLED: "Cancelado",
-    };
+    const STATUS_LABELS = WORK_ORDER_STATUS_LABELS;
 
     const itemsTotal = (order.items ?? []).reduce(
       (s: number, i: any) => s + Number(i.quantity) * Number(i.unitPrice),

@@ -1,13 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { AR_OFFSET_MS } from "@mecanico/shared";
 
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview(workshopId: string) {
-    // Argentina is UTC-3. Compute day/month boundaries in local time then convert to UTC.
-    const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
     const nowAR = new Date(Date.now() - AR_OFFSET_MS);
 
     const todayStartAR = new Date(nowAR);
@@ -227,7 +226,6 @@ export class DashboardService {
   }
 
   async getRevenueChart(workshopId: string) {
-    const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
     const nowAR = new Date(Date.now() - AR_OFFSET_MS);
 
     // Build last 6 months metadata

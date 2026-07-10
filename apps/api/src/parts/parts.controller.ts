@@ -21,6 +21,7 @@ import {
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { Permissions } from "../common/decorators/permissions.decorator";
 import { Permission } from "../common/permissions";
+import type { AuthRequest } from "../common/types/auth.types";
 
 @Controller("parts")
 export class PartsController {
@@ -29,7 +30,7 @@ export class PartsController {
   @Permissions(Permission.VIEW_ORDERS)
   @Get()
   findAll(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query("search") search?: string,
     @Query("lowStock") lowStock?: string,
   ) {
@@ -43,7 +44,7 @@ export class PartsController {
   @Permissions(Permission.EDIT_ORDERS)
   @Post()
   create(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Body(new ZodValidationPipe(CreatePartSchema)) dto: CreatePartDto,
   ) {
     return this.partsService.create(req.auth.workshopId, dto);
@@ -51,14 +52,14 @@ export class PartsController {
 
   @Permissions(Permission.VIEW_ORDERS)
   @Get(":id")
-  findOne(@Req() req: any, @Param("id") id: string) {
+  findOne(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.partsService.findOne(req.auth.workshopId, id);
   }
 
   @Permissions(Permission.EDIT_ORDERS)
   @Patch(":id")
   update(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatePartSchema)) dto: UpdatePartDto,
   ) {
@@ -68,7 +69,7 @@ export class PartsController {
   @Permissions(Permission.EDIT_ORDERS)
   @Patch(":id/stock")
   adjustStock(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(AdjustStockSchema)) dto: AdjustStockDto,
   ) {
@@ -77,7 +78,7 @@ export class PartsController {
 
   @Permissions(Permission.EDIT_ORDERS)
   @Delete(":id")
-  remove(@Req() req: any, @Param("id") id: string) {
+  remove(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.partsService.remove(req.auth.workshopId, id);
   }
 }

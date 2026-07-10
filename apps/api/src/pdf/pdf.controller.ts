@@ -3,6 +3,7 @@ import type { Response } from "express";
 import { PdfService } from "./pdf.service";
 import { Permissions } from "../common/decorators/permissions.decorator";
 import { Permission } from "../common/permissions";
+import type { AuthRequest } from "../common/types/auth.types";
 
 @Controller("pdf")
 export class PdfController {
@@ -11,7 +12,7 @@ export class PdfController {
   @Permissions(Permission.VIEW_ORDERS)
   @Get("work-orders/:id")
   async workOrderPdf(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Res() res: Response,
   ) {
@@ -27,7 +28,7 @@ export class PdfController {
   @Permissions(Permission.VIEW_ORDERS)
   @Get("work-orders/:id/budget")
   async budgetPdf(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Res() res: Response,
   ) {

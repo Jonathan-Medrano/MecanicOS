@@ -1,21 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import PDFDocument from "pdfkit";
 import { PrismaService } from "../prisma/prisma.service";
+import { WORK_ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@mecanico/shared";
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING:       "Pendiente",
-  IN_PROGRESS:   "En progreso",
-  WAITING_PARTS: "Esperando piezas",
-  DONE:          "Listo",
-  DELIVERED:     "Entregado",
-  CANCELLED:     "Cancelado",
-};
-
-const PAYMENT_LABELS: Record<string, string> = {
-  UNPAID:  "Sin cobrar",
-  PARTIAL: "Pago parcial",
-  PAID:    "Cobrado",
-};
+const STATUS_LABELS = WORK_ORDER_STATUS_LABELS;
+const PAYMENT_LABELS = PAYMENT_STATUS_LABELS;
 
 @Injectable()
 export class PdfService {

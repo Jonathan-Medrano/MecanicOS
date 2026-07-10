@@ -4,3 +4,4 @@ export * from "./schemas/work-order.schema";
 export * from "./schemas/guide.schema";
 export * from "./schemas/workshop.schema";
 export * from "./schemas/employee.schema";
+export * from "./constants";

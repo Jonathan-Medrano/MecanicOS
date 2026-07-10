@@ -21,6 +21,7 @@ import {
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { Permissions } from "../common/decorators/permissions.decorator";
 import { Permission } from "../common/permissions";
+import type { AuthRequest } from "../common/types/auth.types";
 
 @Controller("work-orders")
 export class WorkOrdersController {
@@ -29,7 +30,7 @@ export class WorkOrdersController {
   @Permissions(Permission.EDIT_ORDERS)
   @Post()
   create(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Body(new ZodValidationPipe(CreateWorkOrderSchema)) dto: unknown,
   ) {
     return this.workOrdersService.create(req.auth.workshopId, dto as any);
@@ -38,7 +39,7 @@ export class WorkOrdersController {
   @Permissions(Permission.VIEW_ORDERS)
   @Get()
   findAll(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Query("clientId") clientId?: string,
     @Query("vehicleId") vehicleId?: string,
     @Query("status") status?: string,
@@ -66,14 +67,14 @@ export class WorkOrdersController {
 
   @Permissions(Permission.VIEW_ORDERS)
   @Get(":id")
-  findOne(@Req() req: any, @Param("id") id: string) {
+  findOne(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.workOrdersService.findOne(req.auth.workshopId, id);
   }
 
   @Permissions(Permission.EDIT_ORDERS)
   @Patch(":id")
   update(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdateWorkOrderSchema)) dto: unknown,
   ) {
@@ -83,7 +84,7 @@ export class WorkOrdersController {
   @Permissions(Permission.CHANGE_ORDER_STATUS)
   @Patch(":id/status")
   updateStatus(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdateWorkOrderStatusSchema)) dto: unknown,
   ) {
@@ -92,14 +93,14 @@ export class WorkOrdersController {
 
   @Permissions(Permission.EDIT_ORDERS)
   @Delete(":id")
-  remove(@Req() req: any, @Param("id") id: string) {
+  remove(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.workOrdersService.remove(req.auth.workshopId, id);
   }
 
   @Permissions(Permission.EDIT_ORDERS)
   @Post(":id/items")
   addItem(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(CreateWorkOrderItemSchema)) dto: unknown,
   ) {
@@ -109,7 +110,7 @@ export class WorkOrdersController {
   @Permissions(Permission.EDIT_ORDERS)
   @Patch(":id/items/:itemId")
   updateItem(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Param("itemId") itemId: string,
     @Body(new ZodValidationPipe(UpdateWorkOrderItemSchema)) dto: unknown,
@@ -120,7 +121,7 @@ export class WorkOrdersController {
   @Permissions(Permission.EDIT_ORDERS)
   @Delete(":id/items/:itemId")
   removeItem(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Param("itemId") itemId: string,
   ) {
@@ -129,14 +130,14 @@ export class WorkOrdersController {
 
   @Permissions(Permission.VIEW_ORDERS)
   @Get(":id/payments")
-  getPayments(@Req() req: any, @Param("id") id: string) {
+  getPayments(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.workOrdersService.getPayments(req.auth.workshopId, id);
   }
 
   @Permissions(Permission.EDIT_ORDERS)
   @Post(":id/payments")
   addPayment(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(CreatePaymentSchema)) dto: unknown,
   ) {
@@ -145,7 +146,7 @@ export class WorkOrdersController {
 
   @Permissions(Permission.SEND_WHATSAPP)
   @Post(":id/notify")
-  notifyClient(@Req() req: any, @Param("id") id: string) {
+  notifyClient(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.workOrdersService.notifyClient(req.auth.workshopId, id);
   }
 }

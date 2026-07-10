@@ -3,6 +3,7 @@ import { WorkshopsService } from "./workshops.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { UpdateWorkshopSettingsSchema, UpdateWorkshopSettingsDto } from "@mecanico/shared";
+import type { AuthRequest } from "../common/types/auth.types";
 
 @Controller()
 export class WorkshopsController {
@@ -12,7 +13,7 @@ export class WorkshopsController {
   ) {}
 
   @Get("me")
-  async getMe(@Req() req: any) {
+  async getMe(@Req() req: AuthRequest) {
     const { isOwner, permissions, workshopId } = req.auth;
     const workshop = await this.prisma.workshop.findUnique({
       where: { id: workshopId },
@@ -23,7 +24,7 @@ export class WorkshopsController {
 
   @Patch("workshop/settings")
   async updateSettings(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Body(new ZodValidationPipe(UpdateWorkshopSettingsSchema)) dto: UpdateWorkshopSettingsDto,
   ) {
     const { workshopId, isOwner } = req.auth;

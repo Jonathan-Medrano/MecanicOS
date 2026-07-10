@@ -13,6 +13,7 @@ import { Permissions } from "../common/decorators/permissions.decorator";
 import { Permission } from "../common/permissions";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { CreateEmployeeSchema, CreateEmployeeDto, UpdateEmployeeSchema, UpdateEmployeeDto } from "@mecanico/shared";
+import type { AuthRequest } from "../common/types/auth.types";
 
 @Controller("employees")
 export class EmployeesController {
@@ -21,7 +22,7 @@ export class EmployeesController {
   @Permissions(Permission.MANAGE_EMPLOYEES)
   @Post()
   create(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Body(new ZodValidationPipe(CreateEmployeeSchema)) dto: CreateEmployeeDto,
   ) {
     return this.employeesService.create(req.auth.workshopId, dto);
@@ -29,14 +30,14 @@ export class EmployeesController {
 
   @Permissions(Permission.MANAGE_EMPLOYEES)
   @Get()
-  findAll(@Req() req: any) {
+  findAll(@Req() req: AuthRequest) {
     return this.employeesService.findAll(req.auth.workshopId);
   }
 
   @Permissions(Permission.MANAGE_EMPLOYEES)
   @Patch(":id")
   update(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdateEmployeeSchema)) dto: UpdateEmployeeDto,
   ) {
@@ -45,7 +46,7 @@ export class EmployeesController {
 
   @Permissions(Permission.MANAGE_EMPLOYEES)
   @Delete(":id")
-  remove(@Req() req: any, @Param("id") id: string) {
+  remove(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.employeesService.remove(req.auth.workshopId, id);
   }
 }

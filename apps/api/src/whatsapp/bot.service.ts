@@ -4,17 +4,11 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { Permission } from "../common/permissions";
+import { WORK_ORDER_STATUS_LABELS, AR_OFFSET_MS } from "@mecanico/shared";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING:       "Pendiente",
-  IN_PROGRESS:   "En progreso",
-  WAITING_PARTS: "Esperando piezas",
-  DONE:          "Listo",
-  DELIVERED:     "Entregado",
-  CANCELLED:     "Cancelado",
-};
+const STATUS_LABELS = WORK_ORDER_STATUS_LABELS;
 
 const MAX_HISTORY_TURNS = 30; // Content objects in the chat history
 const MAX_TOOL_ITERATIONS = 5; // Max function-calling rounds per message
@@ -305,7 +299,6 @@ export class BotService {
   // ─── Tool implementations ─────────────────────────────────────────────────
 
   private async toolListTodayOrders(workshopId: string): Promise<object> {
-    const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
     const nowAR = new Date(Date.now() - AR_OFFSET_MS);
     const startAR = new Date(nowAR);
     startAR.setUTCHours(0, 0, 0, 0);

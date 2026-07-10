@@ -4,6 +4,7 @@ import { AskAssistantSchema } from "@mecanico/shared";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import { Permissions } from "../common/decorators/permissions.decorator";
 import { Permission } from "../common/permissions";
+import type { AuthRequest } from "../common/types/auth.types";
 
 @Controller("assistant")
 export class AssistantController {
@@ -12,7 +13,7 @@ export class AssistantController {
   @Permissions(Permission.VIEW_ORDERS)
   @Post("ask")
   ask(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Body(new ZodValidationPipe(AskAssistantSchema)) dto: unknown,
   ) {
     return this.assistantService.ask(req.auth.workshopId, dto as any);

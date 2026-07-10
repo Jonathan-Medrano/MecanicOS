@@ -1,14 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { WORK_ORDER_STATUS_LABELS } from "@mecanico/shared";
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Pendiente",
-  IN_PROGRESS: "En progreso",
-  WAITING_PARTS: "Esperando repuestos",
-  DONE: "Listo para retirar ✅",
-  DELIVERED: "Entregado",
-  CANCELLED: "Cancelado",
-};
+const STATUS_LABELS = WORK_ORDER_STATUS_LABELS;
 
 @Injectable()
 export class TrackService {
