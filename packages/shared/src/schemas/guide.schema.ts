@@ -12,7 +12,6 @@ export const UpdateGuideSchema = CreateGuideSchema.partial();
 export const AskAssistantSchema = z.object({
   question: z.string().min(3).max(1000),
   vehicle: z.string().max(200).optional(),
-  workOrderId: z.string().uuid().optional(),
 });
 
 export type CreateGuideDto = z.infer<typeof CreateGuideSchema>;

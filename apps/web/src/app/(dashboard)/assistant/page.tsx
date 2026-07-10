@@ -247,7 +247,7 @@ function AssistantContent() {
 
 export default function AssistantPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <AssistantContent />
     </Suspense>
   );
