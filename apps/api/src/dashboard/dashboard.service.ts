@@ -90,7 +90,7 @@ export class DashboardService {
     }, 0);
 
     const lowStockParts = allParts
-      .filter((p) => Number(p.stock) <= Number(p.minStock))
+      .filter((p) => Number(p.minStock) > 0 && Number(p.stock) <= Number(p.minStock))
       .slice(0, 10)
       .map((p) => ({
         id: p.id,

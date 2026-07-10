@@ -93,7 +93,7 @@ function fmtMoney(n?: number) {
 }
 
 function isLowStock(p: Part) {
-  return p.stock <= p.minStock;
+  return p.minStock > 0 && p.stock <= p.minStock;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,11 +112,6 @@ function PartFormModal({ open, onClose, initial }: PartFormModalProps) {
   const [form, setForm] = useState<PartFormValues>(
     initial ? partToForm(initial) : EMPTY_FORM
   );
-
-  // Reset form when modal opens with new initial data
-  const handleOpen = () => {
-    setForm(initial ? partToForm(initial) : EMPTY_FORM);
-  };
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -168,7 +163,7 @@ function PartFormModal({ open, onClose, initial }: PartFormModalProps) {
       title={isEdit ? "Editar repuesto" : "Agregar repuesto"}
     >
       {/* Trigger form reset when component mounts for a new item */}
-      <div className="space-y-4" onFocus={handleOpen.bind(null)}>
+      <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field("name", "Nombre", { required: true, placeholder: "Ej: Filtro de aceite" })}
           {field("sku", "SKU / Código", { placeholder: "Ej: F-OIL-001" })}

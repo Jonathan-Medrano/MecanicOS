@@ -37,8 +37,14 @@ export const UpdateWorkOrderStatusSchema = z.object({
   paymentStatus: PaymentStatus.optional(),
   paymentMethod: PaymentMethod.nullable().optional(),
   mechanicNotes: z.string().max(2000).optional(),
+  budgetApproved: z.boolean().optional(),
 }).refine(
-  (d) => d.status !== undefined || d.mechanicNotes !== undefined || d.paymentStatus !== undefined || d.paymentMethod !== undefined,
+  (d) =>
+    d.status !== undefined ||
+    d.mechanicNotes !== undefined ||
+    d.paymentStatus !== undefined ||
+    d.paymentMethod !== undefined ||
+    d.budgetApproved !== undefined,
   { message: "At least one field required" },
 );
 

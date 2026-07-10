@@ -31,7 +31,7 @@ export class PartsService {
       orderBy: { name: "asc" },
     }).then((parts) => {
       if (!lowStock) return parts;
-      return parts.filter((p) => Number(p.stock) <= Number(p.minStock));
+      return parts.filter((p) => Number(p.minStock) > 0 && Number(p.stock) <= Number(p.minStock));
     });
   }
 
