@@ -262,10 +262,10 @@ function WorkOrdersInner() {
             return (
               <div
                 key={o.id}
-                className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-3 hover:border-blue-200 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:border-blue-800"
+                className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex flex-wrap sm:flex-nowrap items-center gap-3 hover:border-blue-200 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:border-blue-800"
               >
                 <button
-                  className="min-w-0 text-left flex-1"
+                  className="min-w-0 text-left flex-1 basis-full sm:basis-0"
                   onClick={() => router.push(`/work-orders/${o.id}`)}
                 >
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{o.description}</p>
