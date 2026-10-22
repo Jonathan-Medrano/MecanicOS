@@ -236,7 +236,7 @@ export class PdfService {
         .moveDown(4)
         .fontSize(8)
         .fillColor("#aaa")
-        .text("Documento generado por TallerOS", { align: "center" });
+        .text("Documento generado por MecánicOS", { align: "center" });
 
       doc.end();
     });
@@ -444,7 +444,7 @@ export class PdfService {
         .fillColor("#aaa")
         .text("Este presupuesto tiene validez de 15 días hábiles desde la fecha de emisión.", { align: "center" })
         .moveDown(0.5)
-        .text("Documento generado por TallerOS", { align: "center" });
+        .text("Documento generado por MecánicOS", { align: "center" });
 
       doc.end();
     });

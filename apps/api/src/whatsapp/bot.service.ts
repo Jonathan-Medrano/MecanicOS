@@ -13,7 +13,7 @@ const STATUS_LABELS = WORK_ORDER_STATUS_LABELS;
 const MAX_HISTORY_TURNS = 30; // Content objects in the chat history
 const MAX_TOOL_ITERATIONS = 5; // Max function-calling rounds per message
 
-const SYSTEM_PROMPT = `Sos el asistente IA de TallerOS, un sistema de gestión de taller mecánico en Argentina.
+const SYSTEM_PROMPT = `Sos el asistente IA de MecánicOS, un sistema de gestión de taller mecánico en Argentina.
 
 ## Tu rol
 Tenés DOS capacidades combinadas en un solo asistente:

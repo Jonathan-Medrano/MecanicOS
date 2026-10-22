@@ -43,7 +43,7 @@ export function AuthShell({ children, mobileSubtitle }: AuthShellProps) {
           <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/50 group-hover:bg-blue-500 transition-colors">
             <Wrench size={17} className="text-white" />
           </div>
-          <span className="text-white font-bold text-xl tracking-tight">TallerOS</span>
+          <span className="text-white font-bold text-xl tracking-tight">MecánicOS</span>
         </Link>
 
         {/* Main copy */}
@@ -86,7 +86,7 @@ export function AuthShell({ children, mobileSubtitle }: AuthShellProps) {
           </div>
         </div>
 
-        <p className="relative z-10 text-slate-600 text-xs">© 2026 TallerOS · Todos los derechos reservados</p>
+        <p className="relative z-10 text-slate-600 text-xs">© 2026 MecánicOS · Todos los derechos reservados</p>
       </aside>
 
       {/* ── Right form panel ────────────────────────────────── */}
@@ -97,7 +97,7 @@ export function AuthShell({ children, mobileSubtitle }: AuthShellProps) {
             <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
               <Wrench size={15} className="text-white" />
             </div>
-            <span className="text-gray-900 dark:text-gray-100 font-bold text-lg tracking-tight">TallerOS</span>
+            <span className="text-gray-900 dark:text-gray-100 font-bold text-lg tracking-tight">MecánicOS</span>
           </Link>
           {mobileSubtitle && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{mobileSubtitle}</p>

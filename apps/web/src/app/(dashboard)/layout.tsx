@@ -23,7 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <Menu size={20} />
           </button>
-          <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100 text-sm">TallerOS</span>
+          <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100 text-sm">MecánicOS</span>
           <ThemeToggle />
         </header>
 

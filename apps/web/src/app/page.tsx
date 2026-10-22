@@ -14,9 +14,9 @@ import {
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Software de gestión para talleres mecánicos — TallerOS",
+  title: "Software de gestión para talleres mecánicos — MecánicOS",
   description:
-    "TallerOS es el sistema de gestión para talleres mecánicos con órdenes de trabajo digitales, bot de WhatsApp para mecánicos y notificaciones automáticas a clientes. Sin instalación. Probalo gratis.",
+    "MecánicOS es el sistema de gestión para talleres mecánicos con órdenes de trabajo digitales, bot de WhatsApp para mecánicos y notificaciones automáticas a clientes. Sin instalación. Probalo gratis.",
   alternates: {
     canonical: "/",
     languages: { "es-AR": "/" },
@@ -80,7 +80,7 @@ const BENEFITS = [
 const SCHEMA = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "TallerOS",
+  name: "MecánicOS",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description:
@@ -124,7 +124,7 @@ function ProductPreview() {
             <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
           </div>
           <div className="flex-1 bg-white dark:bg-gray-700 rounded-md px-3 py-1 text-[10px] text-gray-400 dark:text-gray-500 font-mono border border-gray-200 dark:border-gray-600 text-center">
-            app.talleros.com/dashboard
+            app.mecanicos.com/dashboard
           </div>
         </div>
 
@@ -214,7 +214,7 @@ export default async function LandingPage() {
               <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-700 transition-colors">
                 <Wrench size={14} className="text-white" />
               </div>
-              <span className="font-bold text-gray-900 dark:text-gray-100 text-lg tracking-tight">TallerOS</span>
+              <span className="font-bold text-gray-900 dark:text-gray-100 text-lg tracking-tight">MecánicOS</span>
             </Link>
             <nav className="flex items-center gap-2 sm:gap-3 shrink-0">
               {isSignedIn ? (
@@ -372,9 +372,9 @@ export default async function LandingPage() {
               <div className="w-5 h-5 bg-blue-600 rounded-md flex items-center justify-center">
                 <Wrench size={10} className="text-white" />
               </div>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">TallerOS</span>
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">MecánicOS</span>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">© 2026 TallerOS. Todos los derechos reservados.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">© 2026 MecánicOS. Todos los derechos reservados.</p>
             <div className="flex items-center gap-4">
               <Link href="/sign-in" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Iniciar sesión</Link>
               <Link href="/sign-up" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Registrarse</Link>

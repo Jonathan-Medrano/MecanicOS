@@ -49,9 +49,9 @@ export class EmployeesService {
         where: { id: workshopId },
         select: { name: true },
       });
-      const workshopName = workshop?.name ?? "TallerOS";
+      const workshopName = workshop?.name ?? "MecánicOS";
       const welcomeMsg = [
-        `👋 ¡Hola *${updated.name}*! Ya estás vinculado a *${workshopName}* en TallerOS.`,
+        `👋 ¡Hola *${updated.name}*! Ya estás vinculado a *${workshopName}* en MecánicOS.`,
         ``,
         `Desde acá podés gestionar órdenes por WhatsApp:`,
         `• _"Se terminó el corola"_ — marcarlo como listo`,

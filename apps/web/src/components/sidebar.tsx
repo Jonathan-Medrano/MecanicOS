@@ -72,7 +72,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       >
         <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <span className="font-semibold text-gray-900 dark:text-gray-100 text-lg truncate">
-            {me?.workshop?.name ?? "TallerOS"}
+            {me?.workshop?.name ?? "MecánicOS"}
           </span>
           {onClose && (
             <button

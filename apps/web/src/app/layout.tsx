@@ -11,8 +11,8 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
   title: {
-    default: "TallerOS — Software de gestión para talleres mecánicos",
-    template: "%s | TallerOS",
+    default: "MecánicOS — Software de gestión para talleres mecánicos",
+    template: "%s | MecánicOS",
   },
   description:
     "Sistema de gestión para talleres mecánicos: órdenes de trabajo digitales, bot de WhatsApp para mecánicos y notificaciones automáticas a clientes. Probalo gratis.",
@@ -23,18 +23,18 @@ export const metadata: Metadata = {
     "app taller mecánico",
     "ordenes de trabajo taller",
   ],
-  authors: [{ name: "TallerOS" }],
+  authors: [{ name: "MecánicOS" }],
   openGraph: {
     type: "website",
     locale: "es_AR",
-    siteName: "TallerOS",
-    title: "TallerOS — Software de gestión para talleres mecánicos",
+    siteName: "MecánicOS",
+    title: "MecánicOS — Software de gestión para talleres mecánicos",
     description:
       "Órdenes de trabajo digitales, bot de WhatsApp y asistente IA técnico. Todo lo que tu taller necesita para digitalizarse hoy.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TallerOS — Software de gestión para talleres mecánicos",
+    title: "MecánicOS — Software de gestión para talleres mecánicos",
     description:
       "Órdenes de trabajo digitales, bot de WhatsApp y asistente IA técnico.",
   },

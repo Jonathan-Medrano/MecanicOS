@@ -12,7 +12,7 @@ export function OnboardingBanner() {
   return (
     <div className="mb-4 flex items-center justify-between gap-4 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-4 py-3">
       <p className="text-sm text-blue-800 dark:text-blue-300">
-        <span className="font-semibold">Bienvenido a TallerOS.</span> Personalizá el nombre,
+        <span className="font-semibold">Bienvenido a MecánicOS.</span> Personalizá el nombre,
         teléfono y dirección de tu taller para que aparezcan en los PDFs.
       </p>
       <Link

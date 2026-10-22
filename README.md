@@ -2,7 +2,7 @@
 
 Sistema de gestión para talleres mecánicos, pensado para competir contra el cuaderno, el Excel y el WhatsApp suelto. El mecánico no se sienta frente a una pantalla: manda un audio por WhatsApp y el sistema ejecuta la acción.
 
-> Proyecto de portfolio, construido de punta a punta para practicar un producto con varias integraciones. No es un servicio en producción. En la interfaz y en algunos archivos todavía figura el nombre anterior, **TallerOS**.
+> Proyecto de portfolio, construido de punta a punta para practicar un producto con varias integraciones. No es un servicio en producción.
 
 ## Qué hace
 
