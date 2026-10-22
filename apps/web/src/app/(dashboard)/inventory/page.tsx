@@ -89,7 +89,9 @@ function formToBody(f: PartFormValues) {
 }
 
 function isLowStock(p: Part) {
-  return p.minStock > 0 && p.stock <= p.minStock;
+  // La API serializa los Decimal como string: comparar como número, no como texto.
+  const min = Number(p.minStock);
+  return min > 0 && Number(p.stock) <= min;
 }
 
 // ---------------------------------------------------------------------------
