@@ -12,6 +12,22 @@ Sistema de gestión para talleres mecánicos, pensado para competir contra el cu
 - **Asistente técnico con IA**: búsqueda semántica sobre los manuales cargados (pgvector); responde citando la fuente en vez de inventar procedimientos.
 - **Multiusuario con permisos por rol**, panel de superadmin y link público de seguimiento.
 
+## Capturas
+
+Datos de muestra (un taller inventado), tomados de una copia local; no hay datos reales.
+
+| | |
+|---|---|
+| ![Órdenes de trabajo](docs/capturas/ordenes.webp) | ![Detalle de una orden](docs/capturas/orden-detalle.webp) |
+| ![Presupuesto y cobros](docs/capturas/orden-presupuesto.webp) | ![Agenda semanal](docs/capturas/calendario.webp) |
+| ![Inventario](docs/capturas/inventario.webp) | |
+
+En el celular:
+
+| | | |
+|---|---|---|
+| <img src="docs/capturas/movil-ordenes.webp" width="220" alt="Órdenes en el celular"> | <img src="docs/capturas/movil-calendario.webp" width="220" alt="Agenda en el celular"> | <img src="docs/capturas/movil-inventario.webp" width="220" alt="Inventario en el celular"> |
+
 ## Cómo está hecho
 
 ```
